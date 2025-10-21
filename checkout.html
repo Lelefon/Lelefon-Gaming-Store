@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Lelefon • Payment</title>
+<link rel="icon" type="image/png" href="images/lelefonlogo2.png?v=2" sizes="192x192">
+<link rel="stylesheet" href="homestyle.css"/>
+<style>
+  .wrap{width:min(1100px,92vw);margin:24px auto}
+  .layout{display:grid;grid-template-columns:1.4fr 1fr;gap:18px}
+  @media (max-width:900px){.layout{grid-template-columns:1fr}}
+  .card{border:1px solid #e6e6e6;border-radius:12px;background:#fff;padding:14px}
+  .stage{display:flex;gap:12px;margin:6px 0 14px}
+  .stage div{padding:6px 10px;border-radius:999px;border:1px solid #e6e6e6}
+  .stage .on{background:#111;color:#fff;border-color:#111}
+  .sum-row{display:flex;justify-content:space-between;border-bottom:1px dashed #eee;padding:8px 4px}
+  .total{display:flex;justify-content:space-between;font-weight:800;margin-top:10px}
+  .pay-choice{display:flex;align-items:center;gap:10px;border:1px solid #e6e6e6;border-radius:10px;padding:12px;background:#fff;cursor:pointer;margin-bottom:8px}
+  .pay-choice.active{outline:2px solid #111}
+  .bank-list{max-height:240px;overflow:auto;border:1px solid #e6e6e6;border-radius:10px;padding:10px;background:#fff}
+  .bank-list button{display:block;width:100%;text-align:left;padding:10px;border:1px solid #eee;background:#fff;border-radius:8px;margin-bottom:8px;cursor:pointer}
+</style>
+</head>
+<body>
+<header class="navbar">
+  <div class="navbar-inner">
+    <div class="logo-container"><a href="home.html" class="logo-link"><img src="images/lelefonlogo.png" class="logo" alt=""><h1>Lelefon Gaming</h1></a></div>
+    <nav class="right-area">
+      <a href="home.html">Home</a><a href="transaction.html">Transactions</a><a href="profile.html">Profile</a>
+      <span class="wallet-pill">LF Wallet: <span id="walletAmt">0.00</span> MYR</span>
+      <a class="btn ghost" href="cart.html">Cart (<span id="cartCount">0</span>)</a>
+      <span id="authArea"><a class="btn primary" href="login.html">Login</a></span>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <h2>Payment</h2>
+  <div class="stage"><div class="on">Order Placed</div><div>Order Paid</div><div>Processing</div><div>Completed</div></div>
+  <div class="layout">
+    <section class="card">
+      <h3>Order Summary</h3>
+      <div id="summary"></div>
+      <div class="total"><span>Payable</span><span id="payable">0.00 MYR</span></div>
+    </section>
+    <aside class="card">
+      <h3>Payment Methods</h3>
+      <div id="pmWallet" class="pay-choice" data-method="wallet"><input type="radio" name="pm"/><strong>LF Account</strong> — Balance <strong id="bal">0.00 MYR</strong></div>
+      <div id="pmFPX" class="pay-choice" data-method="fpx"><input type="radio" name="pm"/><strong>Internet Banking (FPX)</strong></div>
+      <div id="pmEW" class="pay-choice" data-method="ewallet"><input type="radio" name="pm"/><strong>e-Wallet (TNG, GrabPay, ShopeePay…)</strong></div>
+      <div id="fpxArea" style="display:none;margin-top:10px">
+        <div class="field"><label><strong>Select your bank</strong></label>
+          <div class="bank-list" id="bankList"></div>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:12px">
+        <a href="cart.html" class="btn ghost">Back</a><span style="flex:1"></span><button id="payNow" class="btn primary">Pay Now</button>
+      </div>
+    </aside>
+  </div>
+</main>
+
+<script>
+const Store={read:(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}},write:(k,v)=>localStorage.setItem(k,JSON.stringify(v))};
+const state={user:Store.read('lf_user',null),wallet:Store.read('lf_wallet',0),cart:Store.read('lf_cart',[]),pending:Store.read('lf_pending',null),orders:Store.read('lf_orders',[]),walletLogs:Store.read('lf_wallet_logs',[])};
+function save(){Store.write('lf_wallet',state.wallet);Store.write('lf_cart',state.cart);Store.write('lf_orders',state.orders);Store.write('lf_wallet_logs',state.walletLogs);Store.write('lf_pending',state.pending);refresh()}
+function refresh(){document.getElementById('walletAmt').textContent=(+state.wallet||0).toFixed(2);document.getElementById('cartCount').textContent=state.cart.reduce((s,i)=>s+(i.qty||1),0);if(state.user)document.getElementById('authArea').innerHTML=`<span class="pill">Hi, ${state.user.email}</span>`;}refresh();
+
+const mode=new URLSearchParams(location.search).get('mode')||'cart';
+let items = (mode==='pending' && state.pending)? state.pending.slice() : state.cart.slice();
+
+const BANKS=['MAYBANK (M2U)','CIMB CLICKS','RHB NOW','PUBLIC BANK (PBE)','HONG LEONG (HLB CONNECT)','BANK ISLAM','AFFIN BANK','UOB','OCBC','ALLIANCE BANK','BSN','STANDARD CHARTERED'];
+document.getElementById('bankList').innerHTML=BANKS.map(b=>`<button data-bank="${b}">${b}</button>`).join('');
+document.querySelectorAll('#bankList button').forEach(btn=>btn.onclick=()=>document.querySelectorAll('#bankList button').forEach(b=>b.classList.toggle('active',b===btn)));
+
+const summary=document.getElementById('summary'), payable=document.getElementById('payable'), bal=document.getElementById('bal'); bal.textContent=(+state.wallet||0).toFixed(2)+' MYR';
+function total(){return items.reduce((s,i)=>s+i.price*i.qty,0)}
+function draw(){ summary.innerHTML=items.map(i=>`<div class="sum-row"><div><strong>${i.gameName}</strong> ${i.region?`(${i.region})`:''} — ${i.pkgLabel} ${i.uid?`• UID: ${i.uid}`:''}<div class="muted">Qty: ${i.qty}</div></div><div><strong>${(i.price*i.qty).toFixed(2)} MYR</strong></div></div>`).join(''); payable.textContent=total().toFixed(2)+' MYR'; }
+draw();
+
+let payMethod='wallet';
+['pmWallet','pmFPX','pmEW'].forEach(id=>{
+  const el=document.getElementById(id);
+  el.onclick=()=>{ document.querySelectorAll('.pay-choice').forEach(x=>x.classList.remove('active')); el.classList.add('active'); payMethod=el.dataset.method; document.getElementById('fpxArea').style.display=(payMethod==='fpx')?'':'none'; };
+});
+document.getElementById('pmWallet').classList.add('active');
+
+function pushOrder(method){
+  const orderId='LF'+Date.now().toString(36).toUpperCase();
+  const now=Date.now();
+  const order={ id:orderId, user:state.user?.email||'guest', items, total:total(), method, status:'Processing', createdAt:now, paidAt:now };
+  state.orders.unshift(order);
+  // Auto-progress simulation: mark completed if older than 60s on next view
+  return orderId;
+}
+
+document.getElementById('payNow').onclick=()=>{
+  const amt=total();
+  if(payMethod==='wallet'){
+    if(state.wallet<amt){ alert('Insufficient LF Wallet balance. Please top up.'); return; }
+    state.wallet-=amt;
+    state.walletLogs.unshift({id:'WL'+Date.now().toString(36),type:'purchase',delta:-amt,createdAt:Date.now(),note:'Order purchase via LF Wallet'});
+    if(mode==='cart'){ state.cart=[]; } state.pending=null; const id=pushOrder('LF Wallet'); save(); alert('Payment successful. Order '+id+' created.'); location.href='transaction.html';
+  }else if(payMethod==='fpx'){
+    const picked=document.querySelector('#bankList .active'); if(!picked){ alert('Please select a bank.'); return; }
+    if(mode==='cart'){ state.cart=[]; } state.pending=null; const id=pushOrder('FPX '+picked.textContent); save(); alert('FPX payment successful (simulated). Order '+id+' created.'); location.href='transaction.html';
+  }else{
+    if(mode==='cart'){ state.cart=[]; } state.pending=null; const id=pushOrder('e-Wallet'); save(); alert('e-Wallet payment successful (simulated). Order '+id+' created.'); location.href='transaction.html';
+  }
+};
+</script>
+</body>
+</html>

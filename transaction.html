@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Lelefon • Transactions</title>
+<link rel="icon" type="image/png" href="images/lelefonlogo2.png?v=2" sizes="192x192">
+<link rel="stylesheet" href="homestyle.css"/>
+<style>
+  .wrap{width:min(1100px,92vw);margin:24px auto}
+  .card{border:1px solid #e6e6e6;border-radius:12px;background:#fff;padding:14px}
+  .order{border:1px solid #eee;border-radius:12px;padding:12px;margin-bottom:10px}
+  .head{display:flex;gap:8px;justify-content:space-between;align-items:center}
+  .status{padding:4px 10px;border-radius:999px;border:1px solid #e6e6e6;font-weight:700}
+  .items{margin-top:8px}
+  .sum-row{display:flex;justify-content:space-between;border-bottom:1px dashed #eee;padding:6px 4px}
+  .controls{display:flex;gap:8px}
+</style>
+</head>
+<body>
+<header class="navbar">
+  <div class="navbar-inner">
+    <div class="logo-container"><a href="home.html" class="logo-link"><img src="images/lelefonlogo.png" class="logo" alt=""><h1>Lelefon Gaming</h1></a></div>
+    <nav class="right-area">
+      <a href="home.html">Home</a><a href="profile.html">Profile</a>
+      <span class="wallet-pill">LF Wallet: <span id="walletAmt">0.00</span> MYR</span>
+      <a class="btn ghost" href="cart.html">Cart (<span id="cartCount">0</span>)</a>
+      <span id="authArea"><a class="btn primary" href="login.html">Login</a></span>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <h2>My Orders</h2>
+  <div class="controls"><button id="refresh" class="btn ghost">Refresh Status</button></div>
+  <div id="orders"></div>
+</main>
+
+<script>
+const Store={read:(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}},write:(k,v)=>localStorage.setItem(k,JSON.stringify(v))};
+const state={user:Store.read('lf_user',null),wallet:Store.read('lf_wallet',0),cart:Store.read('lf_cart',[]),orders:Store.read('lf_orders',[])};
+function save(){Store.write('lf_orders',state.orders);refresh();}
+function refresh(){document.getElementById('walletAmt').textContent=(+state.wallet||0).toFixed(2);document.getElementById('cartCount').textContent=state.cart.reduce((s,i)=>s+(i.qty||1),0);if(state.user)document.getElementById('authArea').innerHTML=`<span class="pill">Hi, ${state.user.email}</span>`;}
+refresh();
+
+function autoProgress(order){
+  // If > 60s since paid, mark completed
+  if(order.status!=='Completed' && Date.now()-order.paidAt>60000){ order.status='Completed'; }
+}
+function draw(){
+  const list=document.getElementById('orders');
+  if(!state.orders.length){ list.innerHTML='<div class="muted">No orders yet.</div>'; return; }
+  list.innerHTML=state.orders.map(o=>{
+    autoProgress(o);
+    return `<div class="order" data-id="${o.id}">
+      <div class="head"><div><strong>Order #${o.id}</strong> • <span class="muted">${new Date(o.paidAt).toLocaleString()}</span><div class="muted">${o.method}</div></div>
+      <div class="status">${o.status}</div></div>
+      <div class="items">${o.items.map(i=>`<div class="sum-row"><div>${i.gameName} ${i.region?`(${i.region})`:''} — ${i.pkgLabel} ${i.uid?`• UID: ${i.uid}`:''} <span class="muted">x${i.qty}</span></div><div>${(i.price*i.qty).toFixed(2)} MYR</div></div>`).join('')}</div>
+      <div class="sum-row" style="font-weight:800"><div>Total</div><div>${o.total.toFixed(2)} MYR</div></div>
+    </div>`;
+  }).join('');
+  save();
+}
+draw();
+
+document.getElementById('refresh').onclick=draw;
+</script>
+</body>
+</html>

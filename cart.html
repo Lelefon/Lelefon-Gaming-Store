@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Lelefon • Cart</title>
+<link rel="icon" type="image/png" href="images/lelefonlogo2.png?v=2" sizes="192x192">
+<link rel="stylesheet" href="homestyle.css"/>
+<style>
+  .wrap{width:min(1100px,92vw);margin:24px auto}
+  .card{border:1px solid #e6e6e6;border-radius:12px;background:#fff;padding:14px}
+  .row{display:grid;grid-template-columns:1fr auto;gap:10px;border:1px solid #eee;border-radius:12px;padding:12px;margin-bottom:10px}
+  .qty{display:flex;align-items:center;gap:6px}
+  .qty input{width:64px;text-align:center}
+  .total{display:flex;justify-content:space-between;font-weight:800;margin-top:8px}
+  .muted{opacity:.6}
+</style>
+</head>
+<body>
+<header class="navbar">
+  <div class="navbar-inner">
+    <div class="logo-container"><a href="home.html" class="logo-link"><img src="images/lelefonlogo.png" class="logo" alt=""><h1>Lelefon Gaming</h1></a></div>
+    <nav class="right-area">
+      <a href="home.html">Home</a><a href="transaction.html">Transactions</a><a href="profile.html">Profile</a>
+      <span class="wallet-pill">LF Wallet: <span id="walletAmt">0.00</span> MYR</span>
+      <a class="btn ghost" href="cart.html">Cart (<span id="cartCount">0</span>)</a>
+      <span id="authArea"><a class="btn primary" href="login.html">Login</a></span>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <h2>Shopping Cart</h2>
+  <div id="list"></div>
+  <div class="card">
+    <div class="total"><span>Total</span><span id="total">0.00 MYR</span></div>
+    <div style="display:flex;gap:10px;margin-top:10px">
+      <a class="btn ghost" href="home.html">Continue Shopping</a>
+      <span style="flex:1"></span>
+      <button id="checkout" class="btn">Checkout</button>
+    </div>
+  </div>
+</main>
+
+<script>
+const Store={read:(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}},write:(k,v)=>localStorage.setItem(k,JSON.stringify(v))};
+const state={user:Store.read('lf_user',null),wallet:Store.read('lf_wallet',0),cart:Store.read('lf_cart',[])};
+function save(){Store.write('lf_cart',state.cart);refresh()}
+function refresh(){document.getElementById('walletAmt').textContent=(+state.wallet||0).toFixed(2);document.getElementById('cartCount').textContent=state.cart.reduce((s,i)=>s+(i.qty||1),0);if(state.user)document.getElementById('authArea').innerHTML=`<span class="pill">Hi, ${state.user.email}</span>`;}refresh();
+
+const list=document.getElementById('list'), totalEl=document.getElementById('total');
+function tot(){return state.cart.reduce((s,i)=>s+i.price*i.qty,0)}
+function draw(){
+  if(state.cart.length===0){ list.innerHTML='<div class="muted">Your cart is empty.</div>'; totalEl.textContent='0.00 MYR'; return; }
+  list.innerHTML=state.cart.map(i=>`
+    <div class="row" data-k="${i.key}">
+      <div><strong>${i.gameName} ${i.region?`(${i.region})`:''}</strong> — ${i.pkgLabel}
+        <div class="muted">${i.type==='direct'?'UID: '+i.uid:'Game Card'}</div>
+        <div class="qty" style="margin-top:6px">
+          <button class="btn ghost decr">-</button>
+          <input class="q" type="number" min="1" value="${i.qty}">
+          <button class="btn ghost incr">+</button>
+          <span class="badge-small" style="margin-left:auto">Unit ${i.price.toFixed(2)} MYR</span>
+        </div>
+      </div>
+      <div><div style="text-align:right;font-weight:800">${(i.price*i.qty).toFixed(2)} MYR</div><button class="btn ghost remove" style="margin-top:6px">Remove</button></div>
+    </div>`).join('');
+  list.querySelectorAll('.row').forEach(r=>{
+    const key=r.dataset.k, q=r.querySelector('.q');
+    r.querySelector('.remove').onclick=()=>{state.cart=state.cart.filter(x=>x.key!==key);save();draw();};
+    r.querySelector('.decr').onclick=()=>{q.value=Math.max(1,(+q.value||1)-1);setQ(key,+q.value)};
+    r.querySelector('.incr').onclick=()=>{q.value=(+q.value||1)+1;setQ(key,+q.value)};
+    q.onchange=()=>setQ(key,+q.value||1);
+  });
+  totalEl.textContent=tot().toFixed(2)+' MYR';
+}
+function setQ(key,v){ const it=state.cart.find(x=>x.key===key); if(it){it.qty=v; save(); draw();} }
+draw();
+
+document.getElementById('checkout').onclick=()=>{
+  if(!state.user){ alert('Please login first.'); location.href='login.html'; return; }
+  location.href='checkout.html?mode=cart';
+};
+</script>
+</body>
+</html>

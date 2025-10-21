@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Lelefon • Login</title>
+<link rel="icon" type="image/png" href="images/lelefonlogo2.png?v=2" sizes="192x192">
+<link rel="stylesheet" href="homestyle.css"/>
+<style>
+  .wrap{width:min(520px,92vw);margin:40px auto}
+  .card{border:1px solid #e6e6e6;border-radius:16px;background:#fff;padding:22px}
+  .title{font-weight:800;font-size:1.4rem;margin-bottom:6px}
+  .btn-row{display:flex;gap:10px}
+</style>
+</head>
+<body>
+<header class="navbar">
+  <div class="navbar-inner">
+    <div class="logo-container"><a href="home.html" class="logo-link"><img src="images/lelefonlogo.png" class="logo" alt=""><h1>Lelefon Gaming</h1></a></div>
+    <nav class="right-area">
+      <a href="home.html">Home</a><a href="transaction.html">Transactions</a><a href="profile.html">Profile</a>
+      <span class="wallet-pill">LF Wallet: <span id="walletAmt">0.00</span> MYR</span>
+      <a class="btn ghost" href="cart.html">Cart (<span id="cartCount">0</span>)</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="card">
+    <div class="title">Login</div>
+    <div class="field"><label>Email</label><input id="email" type="email" placeholder="you@email.com"/></div>
+    <div class="field"><label>Password</label><input id="pass" type="password" placeholder="••••••••"/></div>
+    <div class="btn-row" style="margin-top:8px"><button id="doLogin" class="btn primary">Login</button><button id="doRegister" class="btn ghost">Register</button></div>
+    <div class="muted" style="margin-top:10px">Tip: this demo stores accounts locally (no real server). Use Profile for wallet top-up.</div>
+  </div>
+</main>
+
+<script>
+const Store={read:(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}},write:(k,v)=>localStorage.setItem(k,JSON.stringify(v))};
+const state={user:Store.read('lf_user',null),wallet:Store.read('lf_wallet',0),cart:Store.read('lf_cart',[]),users:Store.read('lf_users',{})};
+document.getElementById('walletAmt').textContent=(+state.wallet||0).toFixed(2);
+document.getElementById('cartCount').textContent=state.cart.reduce((s,i)=>s+(i.qty||1),0);
+
+function gotoReturn(){ const back=new URLSearchParams(location.search).get('r'); location.href = back || 'home.html'; }
+
+document.getElementById('doLogin').onclick=()=>{
+  const email=document.getElementById('email').value.trim().toLowerCase();
+  const pass=document.getElementById('pass').value;
+  if(!state.users[email] || state.users[email].pass!==btoa(pass)){ alert('Invalid email or password.'); return; }
+  state.user={email}; Store.write('lf_user',state.user); alert('Logged in.'); gotoReturn();
+};
+document.getElementById('doRegister').onclick=()=>{
+  const email=document.getElementById('email').value.trim().toLowerCase();
+  const pass=document.getElementById('pass').value;
+  if(!email||!pass){ alert('Enter email and password.'); return; }
+  const users=state.users; if(users[email]){ alert('Email already registered.'); return; }
+  users[email]={pass:btoa(pass)}; Store.write('lf_users',users); Store.write('lf_user',{email}); alert('Registered & logged in.'); gotoReturn();
+};
+</script>
+</body>
+</html>
