@@ -10,9 +10,17 @@
   .card{border:1px solid #e6e6e6;border-radius:16px;background:#fff;padding:22px}
   .title{font-weight:800;font-size:1.4rem;margin-bottom:6px}
   .btn-row{display:flex;gap:10px}
+  .divider { display: flex; align-items: center; text-align: center; color: #aaa; margin: 16px 0; }
+  .divider::before, .divider::after { content: ''; flex: 1; border-bottom: 1px solid #e6e6e6; }
+  .divider:not(:empty)::before { margin-right: .25em; }
+  .divider:not(:empty)::after { margin-left: .25em; }
+  #googleSignInButton { margin-bottom: 12px; display: flex; justify-content: center; }
 </style>
 </head>
 <body>
+<!-- Google Identity Services Library -->
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+
 <header class="navbar">
   <div class="navbar-inner">
     <div class="logo-container"><a href="index.html" class="logo-link"><img src="images/lelefonlogo.png" class="logo" alt=""><h1>Lelefon Gaming</h1></a></div>
@@ -26,7 +34,13 @@
 
 <main class="wrap">
   <div class="card">
-    <div class="title">Login</div>
+    <div class="title">Sign In</div>
+    
+    <!-- Container for the Google Sign-In button -->
+    <div id="googleSignInButton"></div>
+
+    <div class="divider">OR</div>
+
     <div class="field"><label>Email</label><input id="email" type="email" placeholder="you@email.com"/></div>
     <div class="field"><label>Password</label><input id="pass" type="password" placeholder="••••••••"/></div>
     <div class="btn-row" style="margin-top:8px"><button id="doLogin" class="btn primary">Login</button><button id="doRegister" class="btn ghost">Register</button></div>
@@ -47,6 +61,60 @@ document.getElementById('cartCount').textContent=state.cart.reduce((s,i)=>s+(i.q
 
 function gotoReturn(){ const back=new URLSearchParams(location.search).get('r'); location.href = back || 'index.html'; }
 
+// --- Google Sign-In Handler ---
+window.onload = function () {
+  google.accounts.id.initialize({
+    // Your actual Client ID has been inserted here
+    client_id: "349262547313-jd6mbf9ie22bdb1ftae5lrp4krtni6di.apps.googleusercontent.com", 
+    callback: handleCredentialResponse
+  });
+  google.accounts.id.renderButton(
+    document.getElementById("googleSignInButton"),
+    { theme: "outline", size: "large", width: "350" }  // Customization of the button
+  );
+  // google.accounts.id.prompt(); // Optional: Displays a one-tap login prompt
+};
+
+function handleCredentialResponse(response) {
+  // The response.credential is a JWT (JSON Web Token)
+  const decodedToken = jwt_decode(response.credential);
+  
+  const userEmail = decodedToken.email;
+  const userName = decodedToken.name; // You can use this later if you want
+
+  console.log("Logged in with Google:", userName, `(${userEmail})`);
+
+  // Check if user exists. If not, register them automatically.
+  if (!state.users[userEmail]) {
+    console.log("New user via Google. Registering...");
+    // For Google Sign-In, we can store a placeholder password or note
+    state.users[userEmail] = { pass: 'google_sso' }; 
+    // IMPORTANT: Create a wallet for the new user
+    state.wallets[userEmail] = 0;
+    
+    Store.write('lf_users', state.users);
+    Store.write('lf_wallets', state.wallets);
+  }
+
+  // Log the user in
+  Store.write('lf_user', { email: userEmail });
+  alert(`Welcome, ${userName}! You are now logged in.`);
+  gotoReturn();
+}
+
+// A simple helper function to decode the JWT payload
+function jwt_decode(token) {
+  const base64Url = token.split('.')[1];
+  const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+  const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+    return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+  }).join(''));
+
+  return JSON.parse(jsonPayload);
+}
+
+
+// --- Existing Email/Password Logic ---
 document.getElementById('doLogin').onclick=()=>{
   const email=document.getElementById('email').value.trim().toLowerCase();
   const pass=document.getElementById('pass').value;
@@ -58,19 +126,16 @@ document.getElementById('doRegister').onclick=()=>{
   const pass=document.getElementById('pass').value;
   if(!email||!pass){ alert('Enter email and password.'); return; }
   
-  const users = state.users;
-  const wallets = state.wallets;
-  
-  if(users[email]){ alert('Email already registered.'); return; }
+  if(state.users[email]){ alert('Email already registered.'); return; }
   
   // Create user
-  users[email]={pass:btoa(pass)};
-  // IMPORTANT: Initialize wallet for the new user
-  wallets[email] = 0;
+  state.users[email]={pass:btoa(pass)};
+  // Initialize wallet for the new user
+  state.wallets[email] = 0;
   
   // Save all updated data
-  Store.write('lf_users', users);
-  Store.write('lf_wallets', wallets); // Save the updated wallets object
+  Store.write('lf_users', state.users);
+  Store.write('lf_wallets', state.wallets);
   Store.write('lf_user',{email});
   
   alert('Registered & logged in.');
