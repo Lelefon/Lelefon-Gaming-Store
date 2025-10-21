@@ -29,9 +29,9 @@
   <header class="navbar">
     <div class="navbar-inner">
       <div class="logo-container">
-        <a href="index.html" class="logo-link"><img src="images/lelefonlogo.png" alt="Lelefon Logo" class="logo"><h1>Lelefon Gaming - Admin</h1></a>
+        <a href="/" class="logo-link"><img src="images/lelefonlogo.png" alt="Lelefon Logo" class="logo"><h1>Lelefon Gaming - Admin</h1></a>
       </div>
-       <nav class="right-area"><a href="index.html">Home</a><span id="authArea"></span></nav>
+       <nav class="right-area"><a href="/">Home</a><span id="authArea"></span></nav>
     </div>
   </header>
 
@@ -151,9 +151,8 @@
       }
     };
 
-    const packageVersion = "v3"; // Updated version to trigger the reset
+    const packageVersion = "v3";
     if (Store.read('lelefon_package_version') !== packageVersion) {
-        console.log("Package structure is outdated or missing. Resetting to new default structure (v3).");
         Store.write('lelefon_packages', DEFAULT_PACKAGES);
         Store.write('lelefon_package_version', packageVersion);
     }
@@ -212,7 +211,7 @@
     }
 
     function renderOrderList() {
-      orderListEl.innerHTML = `<table class="table"><thead><tr><th>Order ID</th><th>User</th><th>Total</th><th>Status</th><th>Actions</th></tr></thead><tbody>${state.orders.map(order => `<tr><td>${order.id}</td><td>${order.user}</td><td>${order.total.toFixed(2)} MYR</td><td><span class="badge">${order.status}</span></td><td><button class="btn ghost complete-order" data-order-id="${order.id}" ${order.status === 'Completed' ? 'disabled' : ''}>Complete</button><button class="btn ghost cancel-order" data-order-id="${order.id}" ${order.status === 'Cancelled' || order.status === 'Completed' ? 'disabled' : ''}>Cancel</button></td></tr>`).join('')}</tbody></table>`;
+      orderListEl.innerHTML = `<table class="table"><thead><tr><th>Order ID</th><th>User</th><th>Total</th><th>Status</th><th>Actions</th></tr></thead><tbody>${state.orders.map(order => `<tr><td>${order.id}</td><td>${order.user}</td><td>${order.total.toFixed(2)} MYR</td><td><span class="badge status-${order.status.toLowerCase()}">${order.status}</span></td><td><button class="btn ghost complete-order" data-order-id="${order.id}" ${order.status === 'Completed' || order.status === 'Cancelled' ? 'disabled' : ''}>Complete</button><button class="btn ghost cancel-order" data-order-id="${order.id}" ${order.status === 'Cancelled' || order.status === 'Completed' ? 'disabled' : ''}>Cancel</button></td></tr>`).join('')}</tbody></table>`;
       document.querySelectorAll('.complete-order, .cancel-order').forEach(button => {
         button.addEventListener('click', (e) => {
           const orderId = e.target.dataset.orderId;
@@ -289,6 +288,7 @@
         sessionStorage.removeItem('isAdminLoggedIn');
         document.getElementById('adminLogin').classList.remove('hidden');
         adminContentEl.classList.add('hidden');
+        authAreaEl.innerHTML = '';
     };
     updateUserBalanceBtn.addEventListener('click', updateUserBalance);
     addPackageBtn.addEventListener('click', addPackage);
