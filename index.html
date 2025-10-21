@@ -10,17 +10,9 @@
 <body>
 <header class="navbar">
   <div class="navbar-inner">
-    <div class="logo-container">
-      <a href="index.html" class="logo-link">
-        <img src="images/lelefonlogo.png" alt="Lelefon Logo" class="logo"/>
-        <h1>Lelefon Gaming</h1>
-      </a>
-    </div>
+    <div class="logo-container"><a href="index.html" class="logo-link"><img src="images/lelefonlogo.png" alt="Lelefon Logo" class="logo"/><h1>Lelefon Gaming</h1></a></div>
     <nav class="right-area">
-      <a href="index.html">Home</a>
-      <a href="#topup">Top-Up</a>
-      <a href="transaction.html">Transactions</a>
-      <a href="profile.html">Profile</a>
+      <a href="index.html">Home</a><a href="#topup">Top-Up</a><a href="transaction.html">Transactions</a><a href="profile.html">Profile</a>
       <span class="wallet-pill">LF Wallet: <span id="walletAmt">0.00</span> MYR</span>
       <a class="btn ghost" href="cart.html">Cart (<span id="cartCount">0</span>)</a>
       <span id="authArea"><a class="btn primary" href="login.html">Login</a></span>
@@ -29,168 +21,84 @@
 </header>
 
 <main class="container">
-  <section class="hero">
-    <h2>Top Up Your Favourite Games Instantly ⚡</h2>
-    <p>Fast, Secure & Trusted by Gamers.</p>
-  </section>
-
+  <section class="hero"><h2>Top Up Your Favourite Games Instantly ⚡</h2><p>Fast, Secure & Trusted by Gamers.</p></section>
   <section class="games-section" id="topup">
     <h3>Popular Games</h3>
-
     <div class="filter-bar" role="tablist" aria-label="Filter games">
-      <button class="filter-btn active" data-filter="all" role="tab" aria-selected="true">All</button>
-      <button class="filter-btn" data-filter="direct" role="tab" aria-selected="false">Direct Topup</button>
-      <button class="filter-btn" data-filter="card" role="tab" aria-selected="false">Game Card</button>
+      <button class="filter-btn active" data-filter="all">All</button><button class="filter-btn" data-filter="direct">Direct Topup</button><button class="filter-btn" data-filter="card">Game Card</button>
     </div>
-
     <div class="game-grid" id="gameGrid">
-      <div class="game-card" data-game="Mobile Legends: Bang Bang" data-regionable="true" data-region-key="mlbb" data-category="direct" data-uid-required="true">
-        <div class="card-inner"><img src="images/mobilelegendsLogo.png" alt="Mobile Legends"></div>
-        <p class="game-title">Mobile Legends: Bang Bang</p>
-      </div>
-
-      <div class="game-card" data-game="Honor of Kings" data-category="direct">
-        <div class="card-inner"><img src="images/honorofkingLogo.png" alt="Honor of Kings"></div>
-        <p class="game-title">Honor of Kings</p>
-      </div>
-
-      <div class="game-card" data-game="Genshin Impact" data-category="direct">
-        <div class="card-inner"><img src="images/genshinLogo.png" alt="Genshin Impact"></div>
-        <p class="game-title">Genshin Impact</p>
-      </div>
-
-      <div class="game-card" data-game="PUBG Mobile" data-category="direct">
-        <div class="card-inner"><img src="images/pubgmobileLogo.png" alt="PUBG Mobile"></div>
-        <p class="game-title">PUBG Mobile</p>
-      </div>
-
-      <div class="game-card" data-game="Free Fire" data-regionable="true" data-region-key="freefire" data-category="direct" data-uid-required="true">
-        <div class="card-inner"><img src="images/freefireLogo.png" alt="Free Fire"></div>
-        <p class="game-title">Free Fire</p>
-      </div>
-
-      <div class="game-card" data-game="Zenless Zone Zero" data-category="direct">
-        <div class="card-inner"><img src="images/zenlessLogo.png" alt="Zenless Zone Zero"></div>
-        <p class="game-title">Zenless Zone Zero</p>
-      </div>
-
-      <div class="game-card" data-game="Honkai: Star Rail" data-category="direct">
-        <div class="card-inner"><img src="images/honkaiLogo.png" alt="Honkai: Star Rail"></div>
-        <p class="game-title">Honkai: Star Rail</p>
-      </div>
-
-      <div class="game-card" data-game="Steam Wallet Code" data-regionable="true" data-region-key="steam" data-category="card" data-uid-required="false">
-        <div class="card-inner"><img src="images/steamwalletLogo.png" alt="Steam Wallet Code"></div>
-        <p class="game-title">Steam Wallet Code</p>
-      </div>
-
-      <div class="game-card" data-game="Nintendo eShop Gift Card" data-regionable="true" data-region-key="nintendo" data-category="card" data-uid-required="false">
-        <div class="card-inner"><img src="images/NSLogo.png" alt="Nintendo eShop Gift Card"></div>
-        <p class="game-title">Nintendo eShop Gift Card</p>
-      </div>
-
-      <div class="game-card" data-game="Valorant" data-regionable="true" data-region-key="valorant" data-category="direct" data-uid-required="true">
-        <div class="card-inner"><img src="images/valorantLogo.png" alt="Valorant"></div>
-        <p class="game-title">Valorant</p>
-      </div>
-
-      <div class="game-card extra-card" data-game="League of Legends" data-category="direct">
-        <div class="card-inner"><img src="images/lolLogo.png" alt="League of Legends"></div>
-        <p class="game-title">League of Legends</p>
-      </div>
+      <div class="game-card" data-game="Mobile Legends: Bang Bang" data-regionable="true" data-region-key="mlbb" data-category="direct" data-uid-required="true"><div class="card-inner"><img src="images/mobilelegendsLogo.png" alt="Mobile Legends"></div><p class="game-title">Mobile Legends: Bang Bang</p></div>
+      <div class="game-card" data-game="Honor of Kings" data-regionable="true" data-region-key="honorofkings" data-category="direct" data-uid-required="true"><div class="card-inner"><img src="images/honorofkingLogo.png" alt="Honor of Kings"></div><p class="game-title">Honor of Kings</p></div>
+      <div class="game-card" data-game="Genshin Impact" data-regionable="false" data-region-key="genshinimpact" data-category="direct" data-uid-required="true"><div class="card-inner"><img src="images/genshinLogo.png" alt="Genshin Impact"></div><p class="game-title">Genshin Impact</p></div>
+      <div class="game-card" data-game="PUBG Mobile" data-regionable="true" data-region-key="pubgmobile" data-category="direct" data-uid-required="true"><div class="card-inner"><img src="images/pubgmobileLogo.png" alt="PUBG Mobile"></div><p class="game-title">PUBG Mobile</p></div>
+      <div class="game-card" data-game="Free Fire" data-regionable="true" data-region-key="freefire" data-category="direct" data-uid-required="true"><div class="card-inner"><img src="images/freefireLogo.png" alt="Free Fire"></div><p class="game-title">Free Fire</p></div>
+      <div class="game-card" data-game="Zenless Zone Zero" data-regionable="false" data-region-key="zenlesszonezero" data-category="direct" data-uid-required="true"><div class="card-inner"><img src="images/zenlessLogo.png" alt="Zenless Zone Zero"></div><p class="game-title">Zenless Zone Zero</p></div>
+      <div class="game-card" data-game="Honkai: Star Rail" data-regionable="false" data-region-key="honkaistarrail" data-category="direct" data-uid-required="true"><div class="card-inner"><img src="images/honkaiLogo.png" alt="Honkai: Star Rail"></div><p class="game-title">Honkai: Star Rail</p></div>
+      <div class="game-card" data-game="Steam Wallet Code" data-regionable="true" data-region-key="steam" data-category="card" data-uid-required="false"><div class="card-inner"><img src="images/steamwalletLogo.png" alt="Steam Wallet Code"></div><p class="game-title">Steam Wallet Code</p></div>
+      <div class="game-card" data-game="Nintendo eShop Gift Card" data-regionable="true" data-region-key="nintendo" data-category="card" data-uid-required="false"><div class="card-inner"><img src="images/NSLogo.png" alt="Nintendo eShop Gift Card"></div><p class="game-title">Nintendo eShop Gift Card</p></div>
+      <div class="game-card" data-game="Valorant" data-regionable="true" data-region-key="valorant" data-category="direct" data-uid-required="true"><div class="card-inner"><img src="images/valorantLogo.png" alt="Valorant"></div><p class="game-title">Valorant</p></div>
+      <div class="game-card extra-card" data-game="League of Legends" data-regionable="true" data-region-key="leagueoflegends" data-category="direct" data-uid-required="true"><div class="card-inner"><img src="images/lolLogo.png" alt="League of Legends"></div><p class="game-title">League of Legends</p></div>
     </div>
-
     <button id="viewMoreBtn" class="view-more-btn" aria-expanded="false">View More →</button>
   </section>
 </main>
-
 <footer><p>© 2025 Lelefon Gaming Store. All Rights Reserved.</p></footer>
 
-<!-- Region Modal -->
-<div id="regionModal" class="modal hidden" aria-hidden="true" role="dialog" aria-labelledby="modalTitle">
-  <div class="modal-backdrop" data-close-modal></div>
-  <div class="modal-dialog" role="document">
-    <button class="modal-close" aria-label="Close" data-close-modal>×</button>
-    <div class="modal-header">
-      <h3 id="modalTitle">Select Server / Region</h3>
-      <span class="modal-sub" id="modalGame"></span>
-    </div>
-    <div class="region-grid" id="regionGrid"></div>
-  </div>
-</div>
+<div id="regionModal" class="modal hidden"><div class="modal-backdrop" data-close-modal></div><div class="modal-dialog"><button class="modal-close" data-close-modal>×</button><div class="modal-header"><h3 id="modalTitle">Select Server / Region</h3><span class="modal-sub" id="modalGame"></span></div><div class="region-grid" id="regionGrid"></div></div></div>
 
 <script>
-/* Storage helpers */
 const Store={read:(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}},write:(k,v)=>localStorage.setItem(k,JSON.stringify(v))};
-const state={user:Store.read('lf_user',null),wallet:Store.read('lf_wallet',0),cart:Store.read('lf_cart',[])};
+const state={user:Store.read('lf_user',null),wallet:Store.read('lf_wallet',0),cart:Store.read('lf_cart',[]),allPackages:Store.read('lelefon_packages', {})};
 function refreshNavbar(){
   document.getElementById('walletAmt').textContent=(+state.wallet||0).toFixed(2);
   document.getElementById('cartCount').textContent=state.cart.reduce((s,i)=>s+(i.qty||1),0);
-  const auth=document.getElementById('authArea');
-  if(state.user){ auth.innerHTML=`<span class="pill">Hi, ${state.user.email}</span> <a class="btn ghost" href="profile.html">Profile</a>`; }
+  if(state.user) document.getElementById('authArea').innerHTML=`<span class="pill">Hi, ${state.user.email}</span> <a class="btn ghost" href="profile.html">Profile</a>`;
 }
 refreshNavbar();
 
-/* Filter + View More */
 const grid=document.getElementById('gameGrid');
 const viewBtn=document.getElementById('viewMoreBtn');
-viewBtn.onclick=()=>{ const all=grid.classList.toggle('show-all'); viewBtn.textContent=all?'Show Less ←':'View More →'; viewBtn.setAttribute('aria-expanded',all?'true':'false'); };
+viewBtn.onclick=()=>{ const all=grid.classList.toggle('show-all'); viewBtn.textContent=all?'Show Less ←':'View More →';};
 document.querySelectorAll('.filter-btn').forEach(btn=>{
   btn.onclick=()=>{
     document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
     btn.classList.add('active');
-    const cat=btn.dataset.filter;
-    grid.classList.remove('show-all');
-    viewBtn.textContent='View More →'; viewBtn.setAttribute('aria-expanded','false');
-    grid.querySelectorAll('.game-card').forEach(card=>{
-      const c=card.getAttribute('data-category');
-      card.style.display=(cat==='all'||c===cat)?'':'none';
-    });
+    grid.querySelectorAll('.game-card').forEach(card=>card.style.display=(btn.dataset.filter==='all'||card.dataset.category===btn.dataset.filter)?'':'none');
   };
 });
 
-/* Region config (keep short) */
-const REGION_CONFIG={
-  mlbb:[{code:'MY',name:'Malaysia',flag:'🇲🇾',img:'images/mobilelegendsLogo.png',badge:'UID'}],
-  freefire:[{code:'MY',name:'Malaysia',flag:'🇲🇾',img:'images/freefireLogo.png',badge:'UID'}],
-  valorant:[{code:'MY',name:'Malaysia',flag:'🇲🇾',img:'images/valorantLogo.png',badge:'UID'},{code:'SG',name:'Singapore',flag:'🇸🇬',img:'images/valorantLogo.png',badge:'UID'}],
-  steam:[{code:'US',name:'United States',flag:'🇺🇸',img:'images/steamwalletLogo.png',badge:'Code'}],
-  nintendo:[{code:'US',name:'United States',flag:'🇺🇸',img:'images/NSLogo.png',badge:'Code'}]
-};
-
-/* Region modal */
+const gameImageMap={'mlbb':'images/mobilelegendsLogo.png','valorant':'images/valorantLogo.png','freefire':'images/freefireLogo.png','leagueoflegends':'images/lolLogo.png','steam':'images/steamwalletLogo.png','nintendo':'images/NSLogo.png', 'pubgmobile':'images/pubgmobileLogo.png', 'honorofkings':'images/honorofkingLogo.png'};
 const modal=document.getElementById('regionModal');
 const regionGrid=document.getElementById('regionGrid');
-const modalGame=document.getElementById('modalGame');
-function renderRegions(gameKey){
-  const items=REGION_CONFIG[gameKey]||[];
-  regionGrid.innerHTML=items.map(r=>`
-    <button class="region-card" data-region="${r.code}" title="${r.name}">
-      <img src="${r.img}" alt=""><span class="badge">${r.badge}</span><p>${r.flag} ${r.name}</p>
-    </button>`).join('');
-}
+
 function openRegion(gameKey, gameName, requiresUID){
-  modalGame.textContent = requiresUID?`UID • ${gameName}`:gameName;
-  modal.classList.remove('hidden'); modal.setAttribute('aria-hidden','false'); document.body.style.overflow='hidden';
-  renderRegions(gameKey);
+  const gameData = state.allPackages[gameKey];
+  if (!gameData || !gameData.regions) { console.error("No region data for", gameKey); return; }
+  document.getElementById('modalGame').textContent = (requiresUID ? 'UID' : 'CODE') + ` • ${gameName}`;
+  const badge = requiresUID ? 'UID' : 'CODE';
+  regionGrid.innerHTML = Object.keys(gameData.regions).map(regionKey => {
+      const region = gameData.regions[regionKey];
+      const img = gameImageMap[gameKey] || 'images/lelefonlogo2.png';
+      return `<button class="region-card" data-region="${regionKey}" title="${region.name}"><img src="${img}" alt=""><span class="badge">${badge}</span><p>${region.flag||''} ${region.name}</p></button>`;
+  }).join('');
+  modal.classList.remove('hidden');
+  document.body.style.overflow='hidden';
   regionGrid.querySelectorAll('.region-card').forEach(btn=>{
-    btn.onclick=()=>{ const region=btn.getAttribute('data-region');
+    btn.onclick=()=>{
+      const region=btn.getAttribute('data-region');
       location.href=`product.html?game=${encodeURIComponent(gameKey)}&name=${encodeURIComponent(gameName)}&region=${encodeURIComponent(region)}&uid=${requiresUID?'1':'0'}`;
     };
   });
 }
-function closeModal(){ modal.classList.add('hidden'); modal.setAttribute('aria-hidden','true'); document.body.style.overflow=''; }
-document.querySelectorAll('[data-close-modal]').forEach(el=>el.onclick=closeModal);
 
-/* Card clicks */
+function closeModal(){ modal.classList.add('hidden'); document.body.style.overflow=''; }
+document.querySelectorAll('[data-close-modal]').forEach(el=>el.onclick=closeModal);
 document.querySelectorAll('.game-card').forEach(card=>{
   card.onclick=()=>{
-    const gameName=card.getAttribute('data-game');
-    const gameKey=card.getAttribute('data-region-key')||gameName.toLowerCase().replace(/\s+/g,'');
-    const regionable=card.getAttribute('data-regionable')==='true';
-    const needsUID=card.getAttribute('data-uid-required')==='true';
-    if(regionable){ openRegion(gameKey, gameName, needsUID); }
-    else{ location.href=`product.html?game=${encodeURIComponent(gameKey)}&name=${encodeURIComponent(gameName)}&uid=${needsUID?'1':'0'}`; }
+    const gameName=card.getAttribute('data-game'), gameKey=card.getAttribute('data-region-key'), regionable=card.getAttribute('data-regionable')==='true', needsUID=card.getAttribute('data-uid-required')==='true';
+    if(regionable) openRegion(gameKey, gameName, needsUID);
+    else location.href=`product.html?game=${encodeURIComponent(gameKey)}&name=${encodeURIComponent(gameName)}&uid=${needsUID?'1':'0'}`;
   };
 });
 </script>

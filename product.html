@@ -7,105 +7,140 @@
 <link rel="icon" type="image/png" href="images/lelefonlogo2.png?v=2" sizes="192x192">
 <link rel="stylesheet" href="homestyle.css"/>
 <style>
-  body{background:#fff;color:#111}
   .wrap{width:min(1100px,92vw);margin:24px auto}
-  .crumbs a{color:#111;text-decoration:none;opacity:.7}
+  .grid{display:grid;grid-template-columns:2fr 1fr;gap:18px}
+  @media (max-width:900px){.grid{grid-template-columns:1fr}}
   .product-head{display:flex;gap:18px;align-items:center;margin:8px 0 18px}
   .product-head img{width:72px;height:72px;border-radius:14px;border:1px solid #eee;object-fit:cover}
   .product-title h2{margin:0;font-size:1.6rem}
-  .badge{display:inline-block;padding:4px 10px;border:1px solid #e6e6e6;border-radius:999px;font-weight:700;margin-left:8px}
-  .grid{display:grid;grid-template-columns:2fr 1fr;gap:18px}
   .pkg-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  .user-details-grid {display: grid;grid-template-columns: 1fr 1fr;gap: 12px;margin-bottom: 12px;}
+  .badge{display:inline-block;padding:4px 10px;border:1px solid #e6e6e6;border-radius:999px;font-weight:700;margin-left:8px}
   .pkg{border:1px solid #e6e6e6;border-radius:12px;padding:14px;background:#fff;cursor:pointer}
   .pkg.active{outline:2px solid #111}
-  @media (max-width:900px){.grid{grid-template-columns:1fr}.pkg-grid{grid-template-columns:repeat(2,1fr)}}
   .card{border:1px solid #e6e6e6;border-radius:12px;background:#fff;padding:14px}
   .qty{display:flex;align-items:center;gap:8px}
   .qty input{width:72px;text-align:center}
   .price-row{display:flex;justify-content:space-between;align-items:center;margin-top:8px;font-weight:800}
+
+  /* --- CSS TO REMOVE ARROWS FROM NUMBER INPUT --- */
+  /* For Chrome, Safari, Edge, Opera */
+  input::-webkit-outer-spin-button,
+  input::-webkit-inner-spin-button {
+    -webkit-appearance: none; /* This is a non-standard property, but required for these browsers. */
+    margin: 0;
+  }
+  /* For Firefox */
+  input[type=number] {
+    -moz-appearance: textfield; /* This non-standard property is required for Firefox. The editor warning can be safely ignored. */
+  }
+  /* --- END OF ADDED CSS --- */
 </style>
 </head>
 <body>
 <header class="navbar">
   <div class="navbar-inner">
-    <div class="logo-container">
-      <a href="index.html" class="logo-link"><img src="images/lelefonlogo.png" class="logo" alt=""><h1>Lelefon Gaming</h1></a>
-    </div>
-    <nav class="right-area">
-      <a href="index.html">Home</a>
-      <a href="transaction.html">Transactions</a>
-      <a href="profile.html">Profile</a>
-      <span class="wallet-pill">LF Wallet: <span id="walletAmt">0.00</span> MYR</span>
-      <a class="btn ghost" href="cart.html">Cart (<span id="cartCount">0</span>)</a>
-      <span id="authArea"><a class="btn primary" href="login.html">Login</a></span>
-    </nav>
+    <div class="logo-container"><a href="index.html" class="logo-link"><img src="images/lelefonlogo.png" class="logo" alt=""><h1>Lelefon Gaming</h1></a></div>
+    <nav class="right-area"><a href="index.html">Home</a><a href="transaction.html">Transactions</a><a href="profile.html">Profile</a><span class="wallet-pill">LF Wallet: <span id="walletAmt">0.00</span> MYR</span><a class="btn ghost" href="cart.html">Cart (<span id="cartCount">0</span>)</a><span id="authArea"><a class="btn primary" href="login.html">Login</a></span></nav>
   </div>
 </header>
-
 <main class="wrap">
   <div class="crumbs"><a href="index.html">Home</a> / <a href="index.html#topup">Top-Up</a> / <span id="crumbGame">Game</span></div>
-  <div class="product-head">
-    <img id="gameImg" src="images/valorantLogo.png" alt="">
-    <div class="product-title">
-      <h2 id="titleText">Game (Region)</h2>
-      <div class="muted">Choose a package, enter your ID (if required), set quantity, then Add to Cart or Buy Now.</div>
-    </div>
-  </div>
-
+  <div class="product-head"><img id="gameImg" src="images/lelefonlogo.png" alt=""><div class="product-title"><h2 id="titleText">Game</h2><div class="muted">Choose a package, enter your details, set quantity, then Add to Cart or Buy Now.</div></div></div>
   <div class="grid">
     <section><div class="pkg-grid" id="pkgGrid"></div></section>
     <aside>
       <div class="card">
-        <div class="field" id="uidField"><label><strong>Enter UID / Riot ID / Player ID</strong></label><input id="uidInput" placeholder="e.g. cola16#8888"/></div>
-        <div class="field"><label><strong>Quantity</strong></label><div class="qty"><button id="qMinus" class="btn ghost">–</button><input id="qty" type="number" min="1" value="1"/><button id="qPlus" class="btn ghost">+</button></div></div>
+        <div class="user-details-grid">
+            <div class="field" id="uidField" style="display: none;"><label><strong>User ID</strong></label><input id="uidInput" placeholder="Enter User ID"/></div>
+            <div class="field" id="serverField" style="display: none;"><label><strong>Server/Region</strong></label><select id="serverSelect"><option value="">Please Select</option></select></div>
+        </div>
+        <div class="field"><label><strong>Quantity</strong></label><div class="qty"><button id="qMinus" class="btn ghost">–</button><input id="qtyInput" type="number" min="1" value="1"/><button id="qPlus" class="btn ghost">+</button></div></div>
         <div class="price-row"><span>Total</span><span id="totalPrice">0.00 MYR</span></div>
         <div style="display:flex;gap:10px;margin-top:10px"><button id="addCart" class="btn ghost">Add to Cart</button><button id="buyNow" class="btn primary">Buy Now</button></div>
       </div>
     </aside>
   </div>
 </main>
-
 <script>
 const Store={read:(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}},write:(k,v)=>localStorage.setItem(k,JSON.stringify(v))};
-const state={user:Store.read('lf_user',null),wallet:Store.read('lf_wallet',0),cart:Store.read('lf_cart',[]),pendingOrder:null};
-function save(){Store.write('lf_user',state.user);Store.write('lf_wallet',state.wallet);Store.write('lf_cart',state.cart);refresh();}
+const state={user:Store.read('lf_user',null),wallet:Store.read('lf_wallet',0),cart:Store.read('lf_cart',[]),allPackages:Store.read('lelefon_packages', {})};
 function refresh(){document.getElementById('walletAmt').textContent=(+state.wallet||0).toFixed(2);document.getElementById('cartCount').textContent=state.cart.reduce((s,i)=>s+(i.qty||1),0);if(state.user)document.getElementById('authArea').innerHTML=`<span class="pill">Hi, ${state.user.email}</span>`;}refresh();
 
 const p=new URLSearchParams(location.search);
-const gameKey=p.get('game')||'valorant', gameName=decodeURIComponent(p.get('name')||gameKey), region=p.get('region')||'', needsUID=p.get('uid')==='1';
-document.getElementById('crumbGame').textContent=gameName; document.getElementById('uidField').style.display=needsUID?'':'none';
-document.getElementById('gameImg').src={'valorant':'images/valorantLogo.png','mlbb':'images/mobilelegendsLogo.png','freefire':'images/freefireLogo.png','steam':'images/steamwalletLogo.png','nintendo':'images/NSLogo.png'}[gameKey]||'images/lelefonlogo.png';
-document.getElementById('titleText').innerHTML=`${gameName}${region?` <span class="badge">${region}</span>`:''}${needsUID?` <span class="badge">UID</span>`:` <span class="badge">Code</span>`}`;
+const gameKey=p.get('game'), gameName=decodeURIComponent(p.get('name')||gameKey), needsUID=p.get('uid')==='1';
+let passedRegion = p.get('region');
 
-const PACKAGE_CONFIG={
-  valorant:{MY:[{id:'val-475',label:'475 VP',price:15.12},{id:'val-1000',label:'1000 VP',price:31.12},{id:'val-2050',label:'2050 VP',price:60.72}],SG:[{id:'val-525',label:'525 VP',price:18.90}]},
-  mlbb:{MY:[{id:'ml-86',label:'86 Diamonds',price:7.50},{id:'ml-172',label:'172 Diamonds',price:14.80}]},
-  freefire:{MY:[{id:'ff-100',label:'100 Diamonds',price:4.80},{id:'ff-310',label:'310 Diamonds',price:14.00}]},
-  steam:{US:[{id:'steam-5',label:'Steam Wallet Code 5 USD',price:5.45},{id:'steam-10',label:'Steam Wallet Code 10 USD',price:10.90}]},
-  nintendo:{US:[{id:'ns-10',label:'Nintendo eShop 10 USD',price:45.95},{id:'ns-20',label:'Nintendo eShop 20 USD',price:91.91}]}
-};
-const packages=(PACKAGE_CONFIG[gameKey]&&(region?PACKAGE_CONFIG[gameKey][region]:Object.values(PACKAGE_CONFIG[gameKey])[0]))||[];
-const grid=document.getElementById('pkgGrid');
-let selected=null;
-function draw(){ grid.innerHTML=packages.map(p=>`<button class="pkg" data-id="${p.id}" data-price="${p.price}"><strong>${p.label}</strong><div>${p.price.toFixed(2)} MYR</div></button>`).join('');
-  grid.querySelectorAll('.pkg').forEach(btn=>btn.onclick=()=>{grid.querySelectorAll('.pkg').forEach(x=>x.classList.remove('active'));btn.classList.add('active');selected={id:btn.dataset.id,label:btn.querySelector('strong').textContent,price:+btn.dataset.price};update();});
+document.getElementById('crumbGame').textContent=gameName;
+const uidField = document.getElementById('uidField'), serverField = document.getElementById('serverField'), serverSelect = document.getElementById('serverSelect'), pkgGrid = document.getElementById('pkgGrid');
+const qtyEl = document.getElementById('qtyInput');
+let selected = null;
+
+const gamesWithOnPageSelector = ['genshinimpact', 'honkaistarrail', 'zenlesszonezero'];
+const gameImageMap = {'mlbb':'images/mobilelegendsLogo.png','honorofkings':'images/honorofkingLogo.png','genshinimpact':'images/genshinLogo.png','pubgmobile':'images/pubgmobileLogo.png','freefire':'images/freefireLogo.png','zenlesszonezero':'images/zenlessLogo.png','honkaistarrail':'images/honkaiLogo.png','steam':'images/steamwalletLogo.png','nintendo':'images/NSLogo.png','valorant':'images/valorantLogo.png','leagueoflegends':'images/lolLogo.png'};
+document.getElementById('gameImg').src = gameImageMap[gameKey] || 'images/lelefonlogo2.png';
+
+const allPackages = Store.read('lelefon_packages', {});
+const gameData = allPackages[gameKey];
+
+document.getElementById('titleText').innerHTML = `${gameName} ${passedRegion && gameData?.regions[passedRegion] ? `<span class="badge">${gameData.regions[passedRegion].name}</span>` : ''}`;
+
+function loadAndDrawPackages(selectedRegion) {
+    let packages = [];
+    if(gameData && gameData.regions && gameData.regions[selectedRegion]) {
+        packages = gameData.regions[selectedRegion].packages || [];
+    }
+    selected = null; update();
+    if (packages.length > 0) {
+        pkgGrid.innerHTML = packages.map(p => `<button class="pkg" data-id="${p.id}" data-price="${p.price}"><strong>${p.label}</strong><div>${p.price.toFixed(2)} MYR</div></button>`).join('');
+        pkgGrid.querySelectorAll('.pkg').forEach(btn => {
+            btn.onclick = () => {
+                pkgGrid.querySelectorAll('.pkg').forEach(x => x.classList.remove('active'));
+                btn.classList.add('active');
+                selected = {id:btn.dataset.id, label:btn.querySelector('strong').textContent, price:+btn.dataset.price};
+                update();
+            };
+        });
+    } else { pkgGrid.innerHTML = `<p class="muted">Please select a server/region to see available packages.</p>`; }
 }
-draw();
-const qtyEl=document.getElementById('qty'); document.getElementById('qMinus').onclick=()=>{qtyEl.value=Math.max(1,(+qtyEl.value||1)-1);update()}; document.getElementById('qPlus').onclick=()=>{qtyEl.value=(+qtyEl.value||1)+1;update()}; qtyEl.oninput=update;
-function update(){const t=(selected?selected.price:0)*(+qtyEl.value||1);document.getElementById('totalPrice').textContent=t.toFixed(2)+' MYR';}
 
-function requireLogin(next){ if(state.user) return next(); alert('Please login first.'); location.href='login.html'; }
-document.getElementById('addCart').onclick=()=>{
-  if(!selected){alert('Please choose a package.');return;}
-  if(needsUID && !document.getElementById('uidInput').value.trim()){alert('Please enter your UID / Riot ID.');return;}
-  const item={key:Date.now().toString(36),type:(needsUID?'direct':'card'),gameKey,gameName,region,pkgId:selected.id,pkgLabel:selected.label,price:selected.price,qty:+qtyEl.value||1,uid:needsUID?document.getElementById('uidInput').value.trim():''};
-  state.cart.push(item); save(); location.href='cart.html';
-};
-document.getElementById('buyNow').onclick=()=>{
-  if(!selected){alert('Please choose a package.');return;}
-  if(needsUID && !document.getElementById('uidInput').value.trim()){alert('Please enter your UID / Riot ID.');return;}
-  requireLogin(()=>{ const pending=[{key:'pending-'+Date.now().toString(36),type:(needsUID?'direct':'card'),gameKey,gameName,region,pkgId:selected.id,pkgLabel:selected.label,price:selected.price,qty:+qtyEl.value||1,uid:needsUID?document.getElementById('uidInput').value.trim():''}]; Store.write('lf_pending',pending); location.href='checkout.html?mode=pending'; });
-};
+if (needsUID) uidField.style.display = 'block';
+if (gamesWithOnPageSelector.includes(gameKey)) {
+    serverField.style.display = 'block';
+    const gameRegions = gameData?.regions || {};
+    serverSelect.innerHTML = '<option value="" selected disabled>Please Select</option>';
+    Object.keys(gameRegions).forEach(key => serverSelect.innerHTML += `<option value="${key}">${gameRegions[key].name}</option>`);
+    serverSelect.addEventListener('change', (e) => loadAndDrawPackages(e.target.value));
+    loadAndDrawPackages();
+} else {
+    loadAndDrawPackages(passedRegion);
+}
+
+function update(){const t=(selected?selected.price:0)*(+qtyEl.value||1);document.getElementById('totalPrice').textContent=t.toFixed(2)+' MYR';}
+document.getElementById('qMinus').onclick=()=>{qtyEl.value=Math.max(1,(+qtyEl.value||1)-1);update()};
+document.getElementById('qPlus').onclick=()=>{qtyEl.value=(+qtyEl.value||1)+1;update()};
+qtyEl.oninput = update;
+
+function handlePurchase(isBuyNow) {
+    const selectedRegion = gamesWithOnPageSelector.includes(gameKey) ? serverSelect.value : passedRegion;
+    if (needsUID && !document.getElementById('uidInput').value.trim()) { alert('Please enter your User ID.'); return; }
+    if (!selectedRegion) { alert('Please select a server/region.'); return; }
+    if (!selected) { alert('Please choose a package.'); return; }
+    const item = { key: Date.now().toString(36), type: (needsUID ? 'direct' : 'card'), gameKey, gameName, region: selectedRegion, pkgId: selected.id, pkgLabel: selected.label, price: selected.price, qty: +qtyEl.value || 1, uid: needsUID ? document.getElementById('uidInput').value.trim() : '' };
+    if (isBuyNow) {
+        if(!state.user){ alert('Please login first.'); location.href='login.html'; return; }
+        Store.write('lf_pending', [item]);
+        location.href = 'checkout.html?mode=pending';
+    } else {
+        const cart = Store.read('lf_cart', []);
+        cart.push(item);
+        Store.write('lf_cart', cart);
+        location.href = 'cart.html';
+    }
+}
+
+document.getElementById('addCart').onclick = () => handlePurchase(false);
+document.getElementById('buyNow').onclick = () => handlePurchase(true);
 </script>
 </body>
 </html>

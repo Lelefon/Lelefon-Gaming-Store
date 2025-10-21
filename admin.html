@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lelefon Gaming - Admin Panel</title>
+  <link rel="icon" type="image/png" href="images/lelefonlogo2.png?v=2" sizes="192x192">
+  <link rel="stylesheet" href="homestyle.css">
+  <style>
+    .wrap { width: min(1200px, 92vw); margin: 24px auto; }
+    .card { border: 1px solid var(--border); border-radius: 12px; background: #fff; padding: 16px; margin-bottom: 16px; }
+    .table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    .table th, .table td { border: 1px solid var(--border); padding: 8px; text-align: left; }
+    .table th { background-color: var(--bg-soft); font-weight: bold; }
+    .form-group { margin-bottom: 12px; }
+    .form-group label { display: block; margin-bottom: 4px; font-weight: bold; }
+    .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px; }
+    .package-item { border: 1px solid var(--border); border-radius: 8px; padding: 10px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
+    .admin-controls { margin-top: 20px; }
+    .hidden { display: none; }
+    #adminLogin { max-width: 400px; margin: 50px auto; }
+    .btn-row { display: flex; gap: 10px; margin-top: 8px; }
+    .title { font-weight: 800; font-size: 1.4rem; margin-bottom: 6px; }
+    .region-group h4 { margin: 16px 0 8px; padding-bottom: 4px; border-bottom: 1px solid #eee; }
+    .section-header { font-size: 1.5rem; margin-bottom: 10px; border-bottom: 2px solid #f0f0f0; padding-bottom: 5px; }
+  </style>
+</head>
+<body>
+  <header class="navbar">
+    <div class="navbar-inner">
+      <div class="logo-container">
+        <a href="index.html" class="logo-link"><img src="images/lelefonlogo.png" alt="Lelefon Logo" class="logo"><h1>Lelefon Gaming - Admin</h1></a>
+      </div>
+       <nav class="right-area"><a href="index.html">Home</a><span id="authArea"></span></nav>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <!-- Admin Login Form -->
+    <div id="adminLogin">
+        <div class="card">
+            <div class="title">Admin Login</div>
+            <div class="form-group"><label>Username</label><input id="adminUser" type="text" placeholder="Username"/></div>
+            <div class="form-group"><label>Password</label><input id="adminPass" type="password" placeholder="••••••••"/></div>
+            <div class="btn-row"><button id="doAdminLogin" class="btn primary">Login</button></div>
+        </div>
+    </div>
+
+    <!-- Admin Content Panel -->
+    <div id="adminContent" class="hidden">
+      <h2>Admin Dashboard</h2>
+
+      <!-- User Management -->
+      <section class="card" id="userManagement">
+        <h3 class="section-header">User Management</h3>
+        <div id="userList"></div>
+      </section>
+
+      <!-- Wallet Management -->
+      <section class="card" id="walletManagement">
+        <h3 class="section-header">Wallet Management</h3>
+        <p class="muted">Manage user wallet balances here.</p>
+        <div class="form-group">
+          <label for="userEmailForWallet">User Email:</label>
+          <input type="email" id="userEmailForWallet" placeholder="Enter user's email">
+        </div>
+        <div class="form-group">
+          <label for="newWalletBalance">New Balance (MYR):</label>
+          <input type="number" id="newWalletBalance" step="0.01" placeholder="Enter the exact balance">
+        </div>
+        <button id="updateUserBalance" class="btn primary">Update Balance</button>
+      </section>
+
+      <!-- Order Management -->
+      <section class="card" id="orderManagement">
+        <h3 class="section-header">Order Management</h3>
+        <div id="orderList"></div>
+      </section>
+
+      <!-- Package Management -->
+      <section class="card" id="packageManagement">
+        <h3 class="section-header">Package Management</h3>
+        <div class="form-group">
+          <label for="gameSelect">Select Game:</label>
+          <select id="gameSelect"></select>
+        </div>
+        <div id="packageList"></div>
+        <hr/>
+        <h4>Add New Package</h4>
+        <div class="form-group"><label for="packageName">Package Name:</label><input type="text" id="packageName" placeholder="e.g., 500 Diamonds"></div>
+        <div class="form-group"><label for="packagePrice">Package Price (MYR):</label><input type="number" id="packagePrice" step="0.01" placeholder="e.g., 20.50"></div>
+        <button id="addPackage" class="btn primary">Add Package</button>
+      </section>
+
+      <div class="admin-controls">
+        <button id="logoutAdmin" class="btn ghost">Logout</button>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const Store = {
+      read: (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } },
+      write: (k, v) => localStorage.setItem(k, JSON.stringify(v))
+    };
+
+    const DEFAULT_PACKAGES = {
+      'mlbb': {
+        fullName: 'Mobile Legends: Bang Bang',
+        regions: { 'MY':{name:'Malaysia',flag:'🇲🇾',packages:[]}, 'ID':{name:'Indonesia',flag:'🇮🇩',packages:[]}, 'PH':{name:'Philippines',flag:'🇵🇭',packages:[]}, 'TH':{name:'Thailand',flag:'🇹🇭',packages:[]}, 'BR':{name:'Brazil',flag:'🇧🇷',packages:[]}, 'GLOBAL':{name:'Global',flag:'🌐',packages:[]} }
+      },
+      'valorant': {
+        fullName: 'Valorant',
+        regions: { 'MY':{name:'Malaysia',flag:'🇲🇾',packages:[]}, 'ID':{name:'Indonesia',flag:'🇮🇩',packages:[]}, 'PH':{name:'Philippines',flag:'🇵🇭',packages:[]}, 'TH':{name:'Thailand',flag:'🇹🇭',packages:[]} }
+      },
+      'freefire': {
+        fullName: 'Free Fire',
+        regions: { 'MY':{name:'Malaysia',flag:'🇲🇾',packages:[]}, 'MY_INSTANT':{name:'Malaysia-Instant',flag:'🇲🇾',packages:[]}, 'ID_INSTANT':{name:'Indonesia-Instant',flag:'🇮🇩',packages:[]}, 'GLOBAL':{name:'Global',flag:'🌐',packages:[]} }
+      },
+      'leagueoflegends': {
+        fullName: 'League of Legends',
+        regions: { 'MY':{name:'Malaysia',flag:'🇲🇾',packages:[]}, 'ID':{name:'Indonesia',flag:'🇮🇩',packages:[]}, 'PH':{name:'Philippines',flag:'🇵🇭',packages:[]}, 'SG':{name:'Singapore',flag:'🇸🇬',packages:[]} }
+      },
+      'genshinimpact': {
+        fullName: 'Genshin Impact',
+        regions: { 'America':{name:'America',packages:[]}, 'Asia':{name:'Asia',packages:[]}, 'Europe':{name:'Europe',packages:[]}, 'TW_HK_MO':{name:'TW, HK, MO',packages:[]} }
+      },
+      'honkaistarrail': {
+        fullName: 'Honkai: Star Rail',
+        regions: { 'America':{name:'America',packages:[]}, 'Asia':{name:'Asia',packages:[]}, 'Europe':{name:'Europe',packages:[]}, 'TW_HK_MO':{name:'TW, HK, MO',packages:[]} }
+      },
+      'zenlesszonezero': {
+        fullName: 'Zenless Zone Zero',
+        regions: { 'America':{name:'America',packages:[]}, 'Asia':{name:'Asia',packages:[]}, 'Europe':{name:'Europe',packages:[]}, 'TW_HK_MO':{name:'TW, HK, MO',packages:[]} }
+      },
+      'steam': {
+        fullName: 'Steam Wallet Code',
+        regions: { 'MYR':{name:'Malaysia (MYR)',flag:'🇲🇾',packages:[]}, 'IDR':{name:'Indonesia (IDR)',flag:'🇮🇩',packages:[]}, 'THB':{name:'Thailand (THB)',flag:'🇹🇭',packages:[]}, 'SGD':{name:'Singapore (SGD)',flag:'🇸🇬',packages:[]} }
+      },
+      'nintendo': {
+        fullName: 'Nintendo eShop Gift Card',
+        regions: { 'US':{name:'United States',flag:'🇺🇸',packages:[]}, 'JP':{name:'Japan',flag:'🇯🇵',packages:[]}, 'HK':{name:'Hong Kong',flag:'🇭🇰',packages:[]}, 'BR':{name:'Brazil',flag:'🇧🇷',packages:[]} }
+      },
+      'honorofkings': {
+        fullName: 'Honor of Kings',
+        regions: { 'MY':{name:'Malaysia',flag:'🇲🇾',packages:[]}, 'SG':{name:'Singapore',flag:'🇸🇬',packages:[]}, 'ID':{name:'Indonesia',flag:'🇮🇩',packages:[]}, 'GLOBAL':{name:'Global',flag:'🌐',packages:[]} }
+      },
+      'pubgmobile': {
+        fullName: 'PUBG Mobile',
+        regions: { 'MY':{name:'Malaysia',flag:'🇲🇾',packages:[]}, 'ID':{name:'Indonesia',flag:'🇮🇩',packages:[]}, 'TH':{name:'Thailand',flag:'🇹🇭',packages:[]} }
+      }
+    };
+
+    const packageVersion = "v3"; // Updated version to trigger the reset
+    if (Store.read('lelefon_package_version') !== packageVersion) {
+        console.log("Package structure is outdated or missing. Resetting to new default structure (v3).");
+        Store.write('lelefon_packages', DEFAULT_PACKAGES);
+        Store.write('lelefon_package_version', packageVersion);
+    }
+    
+    const state = {
+      users: Store.read('lf_users', {}),
+      orders: Store.read('lf_orders', []),
+      packages: Store.read('lelefon_packages', DEFAULT_PACKAGES),
+      wallets: Store.read('lf_wallets', {})
+    };
+
+    const adminLoginEl = document.getElementById('adminLogin'), adminContentEl = document.getElementById('adminContent'), doAdminLoginBtn = document.getElementById('doAdminLogin'), userListEl = document.getElementById('userList'), orderListEl = document.getElementById('orderList'), gameSelectEl = document.getElementById('gameSelect'), packageListEl = document.getElementById('packageList'), packageNameEl = document.getElementById('packageName'), packagePriceEl = document.getElementById('packagePrice'), addPackageBtn = document.getElementById('addPackage'), logoutAdminBtn = document.getElementById('logoutAdmin'), authAreaEl = document.getElementById('authArea'), userEmailForWalletEl = document.getElementById('userEmailForWallet'), newWalletBalanceEl = document.getElementById('newWalletBalance'), updateUserBalanceBtn = document.getElementById('updateUserBalance');
+    
+    function saveState() {
+      Store.write('lf_users', state.users);
+      Store.write('lf_orders', state.orders);
+      Store.write('lelefon_packages', state.packages);
+      Store.write('lf_wallets', state.wallets);
+    }
+
+    function showAdminPanel() {
+        adminLoginEl.classList.add('hidden');
+        adminContentEl.classList.remove('hidden');
+        authAreaEl.innerHTML = `<span class="pill">Admin Logged In</span>`;
+        renderUserList();
+        renderOrderList();
+        renderGameOptions();
+        if(gameSelectEl.value) renderPackageList(gameSelectEl.value);
+    }
+
+    function renderUserList() {
+      userListEl.innerHTML = `<table class="table"><thead><tr><th>Email</th><th>Actions</th></tr></thead><tbody>${Object.keys(state.users).map(email => `<tr><td>${email}</td><td><button class="btn ghost delete-user" data-email="${email}">Delete User</button></td></tr>`).join('')}</tbody></table>`;
+      document.querySelectorAll('.delete-user').forEach(button => {
+        button.addEventListener('click', (e) => {
+          const email = e.target.dataset.email;
+          if (confirm(`Are you sure you want to delete user ${email}?`)) {
+            delete state.users[email];
+            delete state.wallets[email];
+            saveState();
+            renderUserList();
+          }
+        });
+      });
+    }
+
+    function updateUserBalance() {
+      const userEmail = userEmailForWalletEl.value.trim().toLowerCase();
+      const newBalance = parseFloat(newWalletBalanceEl.value);
+      if (!userEmail || isNaN(newBalance)) { alert('Please enter a valid user email and a numeric balance.'); return; }
+      if (!state.users[userEmail] && !state.wallets[userEmail]) { alert(`User with email "${userEmail}" not found.`); return; }
+      state.wallets[userEmail] = newBalance;
+      saveState();
+      alert(`Wallet balance for ${userEmail} updated to ${newBalance.toFixed(2)} MYR.`);
+      userEmailForWalletEl.value = '';
+      newWalletBalanceEl.value = '';
+    }
+
+    function renderOrderList() {
+      orderListEl.innerHTML = `<table class="table"><thead><tr><th>Order ID</th><th>User</th><th>Total</th><th>Status</th><th>Actions</th></tr></thead><tbody>${state.orders.map(order => `<tr><td>${order.id}</td><td>${order.user}</td><td>${order.total.toFixed(2)} MYR</td><td><span class="badge">${order.status}</span></td><td><button class="btn ghost complete-order" data-order-id="${order.id}" ${order.status === 'Completed' ? 'disabled' : ''}>Complete</button><button class="btn ghost cancel-order" data-order-id="${order.id}" ${order.status === 'Cancelled' || order.status === 'Completed' ? 'disabled' : ''}>Cancel</button></td></tr>`).join('')}</tbody></table>`;
+      document.querySelectorAll('.complete-order, .cancel-order').forEach(button => {
+        button.addEventListener('click', (e) => {
+          const orderId = e.target.dataset.orderId;
+          const newStatus = e.target.classList.contains('complete-order') ? 'Completed' : 'Cancelled';
+          const orderIndex = state.orders.findIndex(o => o.id === orderId);
+          if (orderIndex > -1) {
+            state.orders[orderIndex].status = newStatus;
+            saveState();
+            renderOrderList();
+          }
+        });
+      });
+    }
+
+    function renderGameOptions() {
+      const gameKeys = Object.keys(state.packages);
+      gameSelectEl.innerHTML = gameKeys.map(key => `<option value="${key}">${state.packages[key].fullName}</option>`).join('');
+    }
+
+    function renderPackageList(gameKey) {
+        packageListEl.innerHTML = '';
+        const gameData = state.packages[gameKey];
+        if (!gameData || !gameData.regions) return;
+        for (const regionKey in gameData.regions) {
+            const regionData = gameData.regions[regionKey];
+            const regionGroup = document.createElement('div');
+            regionGroup.className = 'region-group';
+            regionGroup.innerHTML = `<h4>Region: ${regionData.name} (KEY: ${regionKey})</h4>`;
+            if (regionData.packages && regionData.packages.length > 0) {
+                 regionData.packages.forEach(pkg => {
+                    const packageItem = document.createElement('div');
+                    packageItem.classList.add('package-item');
+                    packageItem.innerHTML = `<span><strong>${pkg.label}</strong> - ${pkg.price.toFixed(2)} MYR</span><button class="btn ghost delete-package" data-game="${gameKey}" data-region="${regionKey}" data-package-id="${pkg.id}">Delete</button>`;
+                    regionGroup.appendChild(packageItem);
+                });
+            } else { regionGroup.innerHTML += `<p class="muted">No packages for this region yet.</p>`; }
+            packageListEl.appendChild(regionGroup);
+        }
+      document.querySelectorAll('.delete-package').forEach(button => {
+        button.addEventListener('click', (e) => {
+          const { game, region, packageId } = e.target.dataset;
+          if (confirm(`Are you sure you want to delete this package?`)) {
+            state.packages[game].regions[region].packages = state.packages[game].regions[region].packages.filter(pkg => pkg.id !== packageId);
+            saveState();
+            renderPackageList(game);
+          }
+        });
+      });
+    }
+
+    function addPackage() {
+      const gameKey = gameSelectEl.value, gameData = state.packages[gameKey];
+      const validRegions = Object.keys(gameData.regions).map(key => `${key} (${gameData.regions[key].name})`).join('\n');
+      const regionKey = prompt(`Enter the REGION KEY for this package.\n\nValid options for ${gameData.fullName}:\n${validRegions}`);
+      if (!regionKey || !gameData.regions[regionKey]) { alert('Invalid or empty region key. Please try again.'); return; }
+      const packageName = packageNameEl.value.trim(), packagePrice = parseFloat(packagePriceEl.value);
+      if (!packageName || isNaN(packagePrice) || packagePrice <= 0) { alert('Please enter a valid package name and price.'); return; }
+      const newPackage = { id: `${gameKey.slice(0,3)}-${Date.now().toString(36)}`, label: packageName, price: packagePrice };
+      if (!state.packages[gameKey].regions[regionKey].packages) state.packages[gameKey].regions[regionKey].packages = [];
+      state.packages[gameKey].regions[regionKey].packages.push(newPackage);
+      saveState();
+      packageNameEl.value = ''; packagePriceEl.value = '';
+      renderPackageList(gameKey);
+      alert('Package added successfully!');
+    }
+    
+    doAdminLoginBtn.onclick = () => {
+        if (document.getElementById('adminUser').value === 'lelefon' && document.getElementById('adminPass').value === '030116OJL') {
+            sessionStorage.setItem('isAdminLoggedIn', 'true');
+            showAdminPanel();
+        } else { alert('Invalid username or password.'); }
+    };
+    logoutAdminBtn.onclick = () => {
+        sessionStorage.removeItem('isAdminLoggedIn');
+        document.getElementById('adminLogin').classList.remove('hidden');
+        adminContentEl.classList.add('hidden');
+    };
+    updateUserBalanceBtn.addEventListener('click', updateUserBalance);
+    addPackageBtn.addEventListener('click', addPackage);
+    gameSelectEl.addEventListener('change', () => renderPackageList(gameSelectEl.value));
+    if (sessionStorage.getItem('isAdminLoggedIn') === 'true') showAdminPanel();
+  </script>
+</body>
+</html>
