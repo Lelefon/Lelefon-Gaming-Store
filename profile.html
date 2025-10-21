@@ -59,78 +59,120 @@
 <script>
 /* Storage */
 const Store={read:(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}},write:(k,v)=>localStorage.setItem(k,JSON.stringify(v))};
-/* State */
+
+/* State from central stores */
 const state={
-  user:Store.read('lf_user',null),
-  wallet:Store.read('lf_wallet',0),
-  cart:Store.read('lf_cart',[]),
-  walletLogs:Store.read('lf_wallet_logs',[])
+  user: Store.read('lf_user', null),
+  wallets: Store.read('lf_wallets', {}), // Read the central wallets object
+  cart: Store.read('lf_cart', []),
+  walletLogs: Store.read('lf_wallet_logs', [])
 };
+
 /* Elements */
-const walletAmt=document.getElementById('walletAmt');
-const cartCount=document.getElementById('cartCount');
-const authArea=document.getElementById('authArea');
-const emailEl=document.getElementById('email');
-const amtEl=document.getElementById('amt');
-const bankEl=document.getElementById('bank');
-const topupBtn=document.getElementById('topup');
+const walletAmt = document.getElementById('walletAmt');
+const cartCount = document.getElementById('cartCount');
+const authArea = document.getElementById('authArea');
+const emailEl = document.getElementById('email');
+const amtEl = document.getElementById('amt');
+const bankEl = document.getElementById('bank');
+const topupBtn = document.getElementById('topup');
 
 /* Helpers */
-function save(){ Store.write('lf_wallet',state.wallet); Store.write('lf_wallet_logs',state.walletLogs); }
+function save() {
+    Store.write('lf_wallets', state.wallets); // Save the entire wallets object
+    Store.write('lf_wallet_logs', state.walletLogs);
+}
+
 function drawNav(){
-  walletAmt.textContent=(+state.wallet||0).toFixed(2);
-  cartCount.textContent=state.cart.reduce((s,i)=>s+(i.qty||1),0);
+  const userBalance = state.user ? (state.wallets[state.user.email] || 0) : 0;
+  walletAmt.textContent = userBalance.toFixed(2);
+  cartCount.textContent = state.cart.reduce((s,i) => s + (i.qty || 1), 0);
   if(state.user){
-    authArea.innerHTML=`<span class="pill">Hi, ${state.user.email}</span>`;
-  }else{
-    authArea.innerHTML=`<a class="btn primary" href="login.html?r=profile.html">Login</a>`;
+    authArea.innerHTML = `<span class="pill">Hi, ${state.user.email}</span>`;
+  } else {
+    authArea.innerHTML = `<a class="btn primary" href="login.html?r=profile.html">Login</a>`;
   }
 }
+
 function drawLogs(){
-  const wrap=document.getElementById('logs');
-  if(!state.walletLogs.length){ wrap.innerHTML='<div class="muted">No wallet activity yet.</div>'; return; }
-  wrap.innerHTML=state.walletLogs.map(l=>`
+  const wrap = document.getElementById('logs');
+  if (!state.user) {
+      wrap.innerHTML = '<div class="muted">Please log in to see your wallet activity.</div>';
+      return;
+  }
+  // Filter logs for the current user
+  const userLogs = state.walletLogs.filter(log => {
+      // Check if the log belongs to the current user
+      if (log.note) {
+          // Top-ups and purchases will have user email in the note
+          if (log.note.includes(state.user.email)) return true;
+          // Refunds are linked by finding the original order
+          if (log.type === 'refund' && log.note.includes('Order')) {
+              const orderId = log.note.split(' ')[2];
+              const originalOrder = Store.read('lf_orders', []).find(o => o.id === orderId);
+              if (originalOrder && originalOrder.user === state.user.email) return true;
+          }
+      }
+      return false;
+  });
+
+  if(!userLogs.length){ wrap.innerHTML = '<div class="muted">No wallet activity yet.</div>'; return; }
+  
+  wrap.innerHTML = userLogs.map(l => `
     <div class="log-row">
-      <div>${l.type==='topup'?'Top-Up':'Purchase'}</div>
-      <div>${(l.delta>0?'+':'')+l.delta.toFixed(2)} MYR</div>
+      <div>${l.type.charAt(0).toUpperCase() + l.type.slice(1)}</div>
+      <div>${(l.delta > 0 ? '+' : '') + l.delta.toFixed(2)} MYR</div>
       <div class="muted">${new Date(l.createdAt).toLocaleString()}</div>
     </div>`).join('');
 }
-/* Login Gate for Top-up */
+
+
 function lockTopupUI(locked){
   amtEl.disabled = locked;
   bankEl.disabled = locked;
   if(locked){
-    topupBtn.textContent='Login to Top Up';
+    topupBtn.textContent = 'Login to Top Up';
     topupBtn.classList.add('primary');
-    topupBtn.onclick=()=>{ location.href='login.html?r=profile.html'; };
-  }else{
-    topupBtn.textContent='Pay & Reload';
-    topupBtn.onclick=doTopup;
+    topupBtn.onclick = () => { location.href = 'login.html?r=profile.html'; };
+  } else {
+    topupBtn.textContent = 'Pay & Reload';
+    topupBtn.onclick = doTopup;
   }
 }
 
-/* Initial render */
-drawNav();
-emailEl.textContent = state.user ? state.user.email : '— (please login)';
-document.getElementById('logout').onclick=()=>{
-  localStorage.removeItem('lf_user');
-  location.href='login.html?r=profile.html';
-};
-drawLogs();
-lockTopupUI(!state.user);
-
 /* Top-up handler (only when logged in) */
 function doTopup(){
-  const a=+amtEl.value||0; if(a<=0){alert('Enter valid amount');return;}
-  const bank=bankEl.value;
-  state.wallet+=a;
-  state.walletLogs.unshift({id:'WL'+Date.now().toString(36),type:'topup',delta:a,createdAt:Date.now(),note:'FPX '+bank});
+  if (!state.user) {
+      alert('You must be logged in to top up.');
+      return;
+  }
+  const a = +amtEl.value || 0;
+  if(a <= 0){ alert('Enter valid amount'); return; }
+  const bank = bankEl.value;
+  const userEmail = state.user.email;
+  
+  // Initialize wallet if it doesn't exist
+  if (state.wallets[userEmail] === undefined) {
+      state.wallets[userEmail] = 0;
+  }
+  
+  state.wallets[userEmail] += a;
+  state.walletLogs.unshift({ id:'WL'+Date.now().toString(36), type:'topup', delta:a, createdAt:Date.now(), note:`FPX ${bank} by ${userEmail}` });
   save();
   drawNav();
   drawLogs();
   alert('Top-up successful.');
 }
+
+/* Initial render */
+drawNav();
+emailEl.textContent = state.user ? state.user.email : '— (please login)';
+document.getElementById('logout').onclick = () => {
+  localStorage.removeItem('lf_user');
+  location.href = 'login.html'; // Go to login page after logout
+};
+drawLogs();
+lockTopupUI(!state.user);
 </script>
 </body>
 </html>

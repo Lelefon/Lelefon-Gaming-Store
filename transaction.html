@@ -13,6 +13,7 @@
   .status{padding:4px 10px;border-radius:999px;border:1px solid #e6e6e6;font-weight:700}
   .items{margin-top:8px}
   .sum-row{display:flex;justify-content:space-between;border-bottom:1px dashed #eee;padding:6px 4px}
+  .pin-code { background-color: #f0f0f0; padding: 4px 8px; border-radius: 6px; font-family: monospace; font-weight: bold; margin-left: 8px; }
 </style>
 </head>
 <body>
@@ -33,9 +34,16 @@
 </main>
 <script>
 const Store={read:(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}},write:(k,v)=>localStorage.setItem(k,JSON.stringify(v))};
-const state={user:Store.read('lf_user',null),wallet:Store.read('lf_wallet',0),cart:Store.read('lf_cart',[]),orders:Store.read('lf_orders',[])};
+const state={user:Store.read('lf_user',null),wallets:Store.read('lf_wallets',{}),cart:Store.read('lf_cart',[]),orders:Store.read('lf_orders',[])};
+
 function save(){Store.write('lf_orders',state.orders);refresh();}
-function refresh(){document.getElementById('walletAmt').textContent=(+state.wallet||0).toFixed(2);document.getElementById('cartCount').textContent=state.cart.reduce((s,i)=>s+(i.qty||1),0);if(state.user)document.getElementById('authArea').innerHTML=`<span class="pill">Hi, ${state.user.email}</span>`;}
+
+function refresh(){
+    const userBalance = state.user ? (state.wallets[state.user.email] || 0) : 0;
+    document.getElementById('walletAmt').textContent = userBalance.toFixed(2);
+    document.getElementById('cartCount').textContent=state.cart.reduce((s,i)=>s+(i.qty||1),0);
+    if(state.user)document.getElementById('authArea').innerHTML=`<span class="pill">Hi, ${state.user.email}</span>`;
+}
 refresh();
 
 function draw(){
@@ -60,10 +68,29 @@ function draw(){
   if(!userOrders.length){ list.innerHTML='<div class="muted">No orders yet.</div>'; return; }
   
   list.innerHTML=userOrders.map(o=>{
+    const itemsHtml = o.items.map(i => {
+        let pinDisplay = '';
+        // If it's a game card and the order is completed, show the PIN
+        if (i.type === 'card' && o.status === 'Completed') {
+            if (i.pin) {
+                pinDisplay = `• PIN: <span class="pin-code">${i.pin}</span>`;
+            } else {
+                pinDisplay = `• <span class="muted">Pending PIN</span>`;
+            }
+        }
+
+        const itemDetails = `${i.gameName} ${i.region?`(${i.region})`:''} — ${i.pkgLabel} ${i.uid?`• UID: ${i.uid}`:''} <span class="muted">x${i.qty}</span> ${pinDisplay}`;
+        
+        return `<div class="sum-row">
+                    <div>${itemDetails}</div>
+                    <div>${(i.price*i.qty).toFixed(2)} MYR</div>
+                </div>`;
+    }).join('');
+
     return `<div class="order" data-id="${o.id}">
       <div class="head"><div><strong>Order #${o.id}</strong> • <span class="muted">${new Date(o.createdAt).toLocaleString()}</span><div class="muted">${o.method}</div></div>
       <div class="status status-${o.status.toLowerCase()}">${o.status}</div></div>
-      <div class="items">${o.items.map(i=>`<div class="sum-row"><div>${i.gameName} ${i.region?`(${i.region})`:''} — ${i.pkgLabel} ${i.uid?`• UID: ${i.uid}`:''} <span class="muted">x${i.qty}</span></div><div>${(i.price*i.qty).toFixed(2)} MYR</div></div>`).join('')}</div>
+      <div class="items">${itemsHtml}</div>
       <div class="sum-row" style="font-weight:800"><div>Total</div><div>${o.total.toFixed(2)} MYR</div></div>
     </div>`;
   }).join('');

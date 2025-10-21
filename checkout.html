@@ -52,14 +52,32 @@
 </main>
 <script>
 const Store={read:(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}},write:(k,v)=>localStorage.setItem(k,JSON.stringify(v))};
-const state={user:Store.read('lf_user',null),wallet:Store.read('lf_wallet',0),cart:Store.read('lf_cart',[]),pending:Store.read('lf_pending',null),orders:Store.read('lf_orders',[]),walletLogs:Store.read('lf_wallet_logs',[])};
-function save(){Store.write('lf_wallet',state.wallet);Store.write('lf_cart',state.cart);Store.write('lf_orders',state.orders);Store.write('lf_wallet_logs',state.walletLogs);Store.write('lf_pending',state.pending);refresh()}
-function refresh(){document.getElementById('walletAmt').textContent=(+state.wallet||0).toFixed(2);document.getElementById('cartCount').textContent=state.cart.reduce((s,i)=>s+(i.qty||1),0);if(state.user)document.getElementById('authArea').innerHTML=`<span class="pill">Hi, ${state.user.email}</span>`;}refresh();
+const state={user:Store.read('lf_user',null),wallets:Store.read('lf_wallets',{}),cart:Store.read('lf_cart',[]),pending:Store.read('lf_pending',null),orders:Store.read('lf_orders',[]),walletLogs:Store.read('lf_wallet_logs',[])};
+
+function save(){
+    Store.write('lf_wallets',state.wallets);
+    Store.write('lf_cart',state.cart);
+    Store.write('lf_orders',state.orders);
+    Store.write('lf_wallet_logs',state.walletLogs);
+    Store.write('lf_pending',state.pending);
+    refresh();
+}
+
+function refresh(){
+    const userBalance = state.user ? (state.wallets[state.user.email] || 0) : 0;
+    document.getElementById('walletAmt').textContent = userBalance.toFixed(2);
+    document.getElementById('cartCount').textContent=state.cart.reduce((s,i)=>s+(i.qty||1),0);
+    if(state.user)document.getElementById('authArea').innerHTML=`<span class="pill">Hi, ${state.user.email}</span>`;
+}
+refresh();
 
 const mode=new URLSearchParams(location.search).get('mode')||'cart';
 let items = (mode==='pending' && state.pending)? state.pending.slice() : state.cart.slice();
 
-const summary=document.getElementById('summary'), payable=document.getElementById('payable'), bal=document.getElementById('bal'); bal.textContent=(+state.wallet||0).toFixed(2)+' MYR';
+const summary=document.getElementById('summary'), payable=document.getElementById('payable'), bal=document.getElementById('bal');
+const currentUserBalance = state.user ? (state.wallets[state.user.email] || 0) : 0;
+bal.textContent = currentUserBalance.toFixed(2) + ' MYR';
+
 function total(){return items.reduce((s,i)=>s+i.price*i.qty,0)}
 function draw(){ summary.innerHTML=items.map(i=>`<div class="sum-row"><div><strong>${i.gameName}</strong> ${i.region?`(${i.region})`:''} — ${i.pkgLabel} ${i.uid?`• UID: ${i.uid}`:''}<div class="muted">Qty: ${i.qty}</div></div><div><strong>${(i.price*i.qty).toFixed(2)} MYR</strong></div></div>`).join(''); payable.textContent=total().toFixed(2)+' MYR'; }
 draw();
@@ -77,24 +95,34 @@ function pushOrder(orderId, method, initialStatus){
   state.orders.unshift(order);
   if(mode==='cart'){ state.cart=[]; }
   state.pending=null;
-  save();
+  // No save() here, it's called by the parent function
 }
 
 document.getElementById('payNow').onclick = async () => {
+    if (!state.user) {
+        alert('Please login to continue.');
+        location.href = 'login.html';
+        return;
+    }
+
     const amt = total();
     const payNowBtn = document.getElementById('payNow');
     payNowBtn.disabled = true;
     payNowBtn.textContent = 'Processing...';
 
     if (payMethod === 'wallet') {
-        if (state.wallet < amt) {
+        const userEmail = state.user.email;
+        const userBalance = state.wallets[userEmail] || 0;
+
+        if (userBalance < amt) {
             alert('Insufficient LF Wallet balance. Please top up.');
             payNowBtn.disabled = false;
             payNowBtn.textContent = 'Pay Now';
             return;
         }
-        state.wallet -= amt;
-        state.walletLogs.unshift({id:'WL'+Date.now().toString(36),type:'purchase',delta:-amt,createdAt:Date.now(),note:'Order purchase'});
+        
+        state.wallets[userEmail] -= amt;
+        state.walletLogs.unshift({id:'WL'+Date.now().toString(36),type:'purchase',delta:-amt,createdAt:Date.now(),note:`Order purchase by ${userEmail}`});
         
         const orderId = 'LF' + Date.now().toString(36).toUpperCase();
         pushOrder(orderId, 'LF Wallet', 'Processing');
@@ -103,6 +131,7 @@ document.getElementById('payNow').onclick = async () => {
         alert('Payment successful. Order ' + orderId + ' is being processed.');
         location.href = 'transaction.html';
     } else {
+        // ... (iPay88 logic remains the same)
         const orderId = 'LF' + Date.now().toString(36).toUpperCase();
         const orderDetails = {
             amount: amt.toFixed(2),
@@ -113,6 +142,7 @@ document.getElementById('payNow').onclick = async () => {
 
         try {
             pushOrder(orderId, 'iPay88', 'Pending');
+            save(); // Save the pending order
             
             const response = await fetch('https://lelefon-ipay88-handler.YOUR_WORKER_SUBDOMAIN.workers.dev', { // <-- IMPORTANT: REPLACE WITH YOUR WORKER URL
                 method: 'POST',
@@ -144,7 +174,7 @@ document.getElementById('payNow').onclick = async () => {
         } catch (error) {
             console.error('Failed to initiate iPay88 payment:', error);
             alert('Could not connect to the payment service. Please try again later.');
-            state.orders = state.orders.filter(o => o.id !== orderId);
+            state.orders = state.orders.filter(o => o.id !== orderId); // Revert order
             save();
             payNowBtn.disabled = false;
             payNowBtn.textContent = 'Pay Now';

@@ -49,11 +49,20 @@
 
 <script>
 const Store={read:(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}},write:(k,v)=>localStorage.setItem(k,JSON.stringify(v))};
-const state={user:Store.read('lf_user',null),wallet:Store.read('lf_wallet',0),cart:Store.read('lf_cart',[]),allPackages:Store.read('lelefon_packages', {})};
+
 function refreshNavbar(){
-  document.getElementById('walletAmt').textContent=(+state.wallet||0).toFixed(2);
-  document.getElementById('cartCount').textContent=state.cart.reduce((s,i)=>s+(i.qty||1),0);
-  if(state.user) document.getElementById('authArea').innerHTML=`<span class="pill">Hi, ${state.user.email}</span> <a class="btn ghost" href="profile.html">Profile</a>`;
+  const user = Store.read('lf_user', null);
+  const wallets = Store.read('lf_wallets', {});
+  const cart = Store.read('lf_cart', []);
+  const userBalance = user ? (wallets[user.email] || 0) : 0;
+
+  document.getElementById('walletAmt').textContent = userBalance.toFixed(2);
+  document.getElementById('cartCount').textContent = cart.reduce((s,i) => s + (i.qty || 1), 0);
+  if(user) {
+      document.getElementById('authArea').innerHTML=`<span class="pill">Hi, ${user.email}</span>`;
+  } else {
+      document.getElementById('authArea').innerHTML=`<a class="btn primary" href="login.html">Login</a>`;
+  }
 }
 refreshNavbar();
 
@@ -73,7 +82,8 @@ const modal=document.getElementById('regionModal');
 const regionGrid=document.getElementById('regionGrid');
 
 function openRegion(gameKey, gameName, requiresUID){
-  const gameData = state.allPackages[gameKey];
+  const allPackages = Store.read('lelefon_packages', {});
+  const gameData = allPackages[gameKey];
   if (!gameData || !gameData.regions) { console.error("No region data for", gameKey); return; }
   document.getElementById('modalGame').textContent = (requiresUID ? 'UID' : 'CODE') + ` • ${gameName}`;
   const badge = requiresUID ? 'UID' : 'CODE';

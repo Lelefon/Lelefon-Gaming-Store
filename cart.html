@@ -43,9 +43,17 @@
 
 <script>
 const Store={read:(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}},write:(k,v)=>localStorage.setItem(k,JSON.stringify(v))};
-const state={user:Store.read('lf_user',null),wallet:Store.read('lf_wallet',0),cart:Store.read('lf_cart',[])};
+const state={user:Store.read('lf_user',null),wallets:Store.read('lf_wallets',{}),cart:Store.read('lf_cart',[])};
+
 function save(){Store.write('lf_cart',state.cart);refresh()}
-function refresh(){document.getElementById('walletAmt').textContent=(+state.wallet||0).toFixed(2);document.getElementById('cartCount').textContent=state.cart.reduce((s,i)=>s+(i.qty||1),0);if(state.user)document.getElementById('authArea').innerHTML=`<span class="pill">Hi, ${state.user.email}</span>`;}refresh();
+
+function refresh(){
+    const userBalance = state.user ? (state.wallets[state.user.email] || 0) : 0;
+    document.getElementById('walletAmt').textContent = userBalance.toFixed(2);
+    document.getElementById('cartCount').textContent=state.cart.reduce((s,i)=>s+(i.qty||1),0);
+    if(state.user)document.getElementById('authArea').innerHTML=`<span class="pill">Hi, ${state.user.email}</span>`;
+}
+refresh();
 
 const list=document.getElementById('list'), totalEl=document.getElementById('total');
 function tot(){return state.cart.reduce((s,i)=>s+i.price*i.qty,0)}

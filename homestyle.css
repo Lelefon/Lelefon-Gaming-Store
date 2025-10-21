@@ -1,7 +1,5 @@
 /* =========================================================
    Lelefon — Global Styles (white/black theme)
-   Pages supported: home, product, cart, checkout, login,
-   profile, transaction
    ========================================================= */
 
 /* ---------- CSS Variables ---------- */
@@ -169,22 +167,38 @@ footer{
 .modal.hidden{ display:none }
 .modal-backdrop{ position:absolute; inset:0; background:rgba(0,0,0,.5); backdrop-filter:blur(3px) }
 .modal-dialog{
-  position:relative; width:min(720px,90vw); background:#1f2b57;
-  border-radius:var(--radius-lg); padding:30px; color:#fff;
+  position:relative; width:min(720px,90vw); background: var(--bg);
+  border-radius:var(--radius-lg); padding:24px; color:var(--text);
+  border: 1px solid var(--border);
 }
-.modal-close{ position:absolute; right:14px; top:10px; background:none; border:none; color:#fff; font-size:26px; cursor:pointer }
+.modal-close{ position:absolute; right:14px; top:10px; background:none; border:none; color: var(--text-muted); font-size:26px; cursor:pointer }
 .modal-header h3{ margin:0; font-size:1.5rem }
-.modal-sub{ color:#cfe3ff; margin-bottom:10px; display:block }
+.modal-sub{ color: var(--text-muted); margin-bottom:10px; display:block }
 .region-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:18px }
 @media (max-width:700px){ .region-grid{ grid-template-columns:repeat(2,1fr) } }
 .region-card{
-  position:relative; border-radius:10px; background:#22336a; border:1px solid rgba(255,255,255,.1);
-  color:#fff; padding:10px; cursor:pointer; text-align:center; transition:transform .2s, background .2s;
+  position:relative; border-radius:10px; background: var(--bg-soft); border:1px solid var(--border);
+  color: var(--text); padding:10px; cursor:pointer; text-align:center; transition:transform .2s, box-shadow .2s;
 }
-.region-card:hover{ transform:translateY(-3px); background:#2a438a }
+.region-card:hover{ transform:translateY(-3px); background: #ffffff; box-shadow: var(--shadow); }
 .region-card img{ width:100%; height:80px; object-fit:cover; border-radius:6px }
-.region-card p{ margin-top:6px; font-weight:600 }
+.region-card p{ margin: 6px 0 0; font-weight:600 }
 .region-card .badge{ position:absolute; left:10px; top:10px; background:#27c355; color:#0b2715; font-weight:700; font-size:.7rem; padding:3px 8px; border-radius:5px }
+
+/* =========================================================
+   Transactions Page & Status Colors
+   ========================================================= */
+.order{
+  border:1px solid #eee; border-radius:var(--radius); padding:12px; margin-bottom:10px; background:#fff;
+}
+.order .head{ display:flex; gap:8px; justify-content:space-between; align-items:center }
+.order .status{ padding:4px 10px; border-radius:999px; border:1px solid var(--border); font-weight:700; background:var(--bg-soft) }
+.order .items{ margin-top:8px }
+
+.status-processing{background:#e6f3ff;border-color:#8abef6;color:#1e62b3}
+.status-completed{background:#eafcf1;border-color:#91dfb5;color:#155724}
+.status-cancelled, .status-failed{background:#feecee;border-color:#f6b2bf;color:#721c24}
+.status-pending{background:#f0f0f0;border-color:#ccc;color:#555}
 
 /* =========================================================
    Product Page
@@ -194,10 +208,8 @@ footer{
 .product-head{ display:flex; gap:18px; align-items:center; margin:8px 0 18px }
 .product-head img{ width:72px; height:72px; border-radius:14px; border:1px solid var(--border); object-fit:cover }
 .product-title h2{ margin:0; font-size:1.6rem }
-.region-pill{ margin-left:8px }
 .product-grid{ display:grid; grid-template-columns:2fr 1fr; gap:18px }
 @media (max-width:900px){ .product-grid{ grid-template-columns:1fr } }
-
 .pkg-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px }
 @media (max-width:900px){ .pkg-grid{ grid-template-columns:repeat(2,1fr) } }
 .pkg{
@@ -206,76 +218,9 @@ footer{
 }
 .pkg:hover{ box-shadow:var(--shadow) }
 .pkg.active{ outline:2px solid #111 }
-
 .qty{ display:flex; align-items:center; gap:8px }
 .qty input{ width:72px; text-align:center }
-
-/* Total line */
 .price-row{ display:flex; justify-content:space-between; align-items:center; margin-top:8px; font-weight:800 }
-
-/* =========================================================
-   Cart Page
-   ========================================================= */
-.cart-row{
-  display:grid; grid-template-columns:1fr auto; gap:10px;
-  border:1px solid #eee; border-radius:var(--radius); padding:12px; margin-bottom:10px; background:#fff;
-}
-.cart-row .title{ font-weight:700 }
-.cart-total{ display:flex; justify-content:space-between; align-items:center; font-weight:800; font-size:1.1rem; margin-top:10px }
-
-/* =========================================================
-   Checkout Page
-   ========================================================= */
-.stage{ display:flex; gap:12px; margin:6px 0 14px }
-.stage div{ padding:6px 10px; border-radius:999px; border:1px solid var(--border); background:#fff }
-.stage .on{ background:#111; color:#fff; border-color:#111 }
-
-.sum-row{ display:flex; justify-content:space-between; border-bottom:1px dashed var(--border); padding:8px 4px }
-.total{ display:flex; justify-content:space-between; font-weight:800; margin-top:10px }
-
-.pay-choice{
-  display:flex; align-items:center; gap:10px;
-  border:1px solid var(--border); border-radius:10px; padding:12px; background:#fff;
-  cursor:pointer; margin-bottom:8px;
-}
-.pay-choice.active{ outline:2px solid #111 }
-.bank-list{
-  max-height:240px; overflow:auto; border:1px solid var(--border);
-  border-radius:10px; padding:10px; background:#fff;
-}
-.bank-list button{
-  display:block; width:100%; text-align:left; padding:10px;
-  border:1px solid #eee; background:#fff; border-radius:8px; margin-bottom:8px; cursor:pointer;
-}
-.bank-list button.active{ border-color:#111; box-shadow:0 0 0 2px rgba(0,0,0,.05) inset }
-
-/* =========================================================
-   Login Page
-   ========================================================= */
-.auth-card{ border:1px solid var(--border); border-radius:16px; background:#fff; padding:22px; width:min(520px,92vw); margin:40px auto }
-.auth-title{ font-weight:800; font-size:1.4rem; margin-bottom:6px }
-
-/* =========================================================
-   Profile Page
-   ========================================================= */
-.profile-grid{ display:grid; grid-template-columns:1fr 1fr; gap:18px }
-@media (max-width:900px){ .profile-grid{ grid-template-columns:1fr } }
-.log-row{ display:flex; justify-content:space-between; border-bottom:1px dashed var(--border); padding:8px 4px }
-
-/* =========================================================
-   Transactions Page
-   ========================================================= */
-.order{
-  border:1px solid #eee; border-radius:var(--radius); padding:12px; margin-bottom:10px; background:#fff;
-}
-.order .head{ display:flex; gap:8px; justify-content:space-between; align-items:center }
-.order .status{ padding:4px 10px; border-radius:999px; border:1px solid var(--border); font-weight:700; background:var(--bg-soft) }
-.order .items{ margin-top:8px }
-
-/* Status color helpers (optional) */
-.status.processing{ background:#fff9e6; border-color:#f6d88a }
-.status.completed{ background:#eafcf1; border-color:#91dfb5 }
-.status.failed{ background:#feecee; border-color:#f6b2bf }
 
 /* =========================================================
    Responsive tweaks

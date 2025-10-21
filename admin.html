@@ -10,7 +10,7 @@
     .wrap { width: min(1200px, 92vw); margin: 24px auto; }
     .card { border: 1px solid var(--border); border-radius: 12px; background: #fff; padding: 16px; margin-bottom: 16px; }
     .table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-    .table th, .table td { border: 1px solid var(--border); padding: 8px; text-align: left; }
+    .table th, .table td { border: 1px solid var(--border); padding: 8px; text-align: left; vertical-align: top; }
     .table th { background-color: var(--bg-soft); font-weight: bold; }
     .form-group { margin-bottom: 12px; }
     .form-group label { display: block; margin-bottom: 4px; font-weight: bold; }
@@ -23,6 +23,8 @@
     .title { font-weight: 800; font-size: 1.4rem; margin-bottom: 6px; }
     .region-group h4 { margin: 16px 0 8px; padding-bottom: 4px; border-bottom: 1px solid #eee; }
     .section-header { font-size: 1.5rem; margin-bottom: 10px; border-bottom: 2px solid #f0f0f0; padding-bottom: 5px; }
+    .order-items-list { margin-top: 8px; padding-left: 16px; border-left: 2px solid #f0f0f0; }
+    .pin-input-group { display: flex; gap: 8px; margin-top: 4px; }
   </style>
 </head>
 <body>
@@ -105,50 +107,17 @@
     };
 
     const DEFAULT_PACKAGES = {
-      'mlbb': {
-        fullName: 'Mobile Legends: Bang Bang',
-        regions: { 'MY':{name:'Malaysia',flag:'🇲🇾',packages:[]}, 'ID':{name:'Indonesia',flag:'🇮🇩',packages:[]}, 'PH':{name:'Philippines',flag:'🇵🇭',packages:[]}, 'TH':{name:'Thailand',flag:'🇹🇭',packages:[]}, 'BR':{name:'Brazil',flag:'🇧🇷',packages:[]}, 'GLOBAL':{name:'Global',flag:'🌐',packages:[]} }
-      },
-      'valorant': {
-        fullName: 'Valorant',
-        regions: { 'MY':{name:'Malaysia',flag:'🇲🇾',packages:[]}, 'ID':{name:'Indonesia',flag:'🇮🇩',packages:[]}, 'PH':{name:'Philippines',flag:'🇵🇭',packages:[]}, 'TH':{name:'Thailand',flag:'🇹🇭',packages:[]} }
-      },
-      'freefire': {
-        fullName: 'Free Fire',
-        regions: { 'MY':{name:'Malaysia',flag:'🇲🇾',packages:[]}, 'MY_INSTANT':{name:'Malaysia-Instant',flag:'🇲🇾',packages:[]}, 'ID_INSTANT':{name:'Indonesia-Instant',flag:'🇮🇩',packages:[]}, 'GLOBAL':{name:'Global',flag:'🌐',packages:[]} }
-      },
-      'leagueoflegends': {
-        fullName: 'League of Legends',
-        regions: { 'MY':{name:'Malaysia',flag:'🇲🇾',packages:[]}, 'ID':{name:'Indonesia',flag:'🇮🇩',packages:[]}, 'PH':{name:'Philippines',flag:'🇵🇭',packages:[]}, 'SG':{name:'Singapore',flag:'🇸🇬',packages:[]} }
-      },
-      'genshinimpact': {
-        fullName: 'Genshin Impact',
-        regions: { 'America':{name:'America',packages:[]}, 'Asia':{name:'Asia',packages:[]}, 'Europe':{name:'Europe',packages:[]}, 'TW_HK_MO':{name:'TW, HK, MO',packages:[]} }
-      },
-      'honkaistarrail': {
-        fullName: 'Honkai: Star Rail',
-        regions: { 'America':{name:'America',packages:[]}, 'Asia':{name:'Asia',packages:[]}, 'Europe':{name:'Europe',packages:[]}, 'TW_HK_MO':{name:'TW, HK, MO',packages:[]} }
-      },
-      'zenlesszonezero': {
-        fullName: 'Zenless Zone Zero',
-        regions: { 'America':{name:'America',packages:[]}, 'Asia':{name:'Asia',packages:[]}, 'Europe':{name:'Europe',packages:[]}, 'TW_HK_MO':{name:'TW, HK, MO',packages:[]} }
-      },
-      'steam': {
-        fullName: 'Steam Wallet Code',
-        regions: { 'MYR':{name:'Malaysia (MYR)',flag:'🇲🇾',packages:[]}, 'IDR':{name:'Indonesia (IDR)',flag:'🇮🇩',packages:[]}, 'THB':{name:'Thailand (THB)',flag:'🇹🇭',packages:[]}, 'SGD':{name:'Singapore (SGD)',flag:'🇸🇬',packages:[]} }
-      },
-      'nintendo': {
-        fullName: 'Nintendo eShop Gift Card',
-        regions: { 'US':{name:'United States',flag:'🇺🇸',packages:[]}, 'JP':{name:'Japan',flag:'🇯🇵',packages:[]}, 'HK':{name:'Hong Kong',flag:'🇭🇰',packages:[]}, 'BR':{name:'Brazil',flag:'🇧🇷',packages:[]} }
-      },
-      'honorofkings': {
-        fullName: 'Honor of Kings',
-        regions: { 'MY':{name:'Malaysia',flag:'🇲🇾',packages:[]}, 'SG':{name:'Singapore',flag:'🇸🇬',packages:[]}, 'ID':{name:'Indonesia',flag:'🇮🇩',packages:[]}, 'GLOBAL':{name:'Global',flag:'🌐',packages:[]} }
-      },
-      'pubgmobile': {
-        fullName: 'PUBG Mobile',
-        regions: { 'MY':{name:'Malaysia',flag:'🇲🇾',packages:[]}, 'ID':{name:'Indonesia',flag:'🇮🇩',packages:[]}, 'TH':{name:'Thailand',flag:'🇹🇭',packages:[]} }
-      }
+      'mlbb': { fullName: 'Mobile Legends: Bang Bang', regions: { 'MY':{name:'Malaysia',flag:'🇲🇾',packages:[]}, 'ID':{name:'Indonesia',flag:'🇮🇩',packages:[]}, 'PH':{name:'Philippines',flag:'🇵🇭',packages:[]}, 'TH':{name:'Thailand',flag:'🇹🇭',packages:[]}, 'BR':{name:'Brazil',flag:'🇧🇷',packages:[]}, 'GLOBAL':{name:'Global',flag:'🌐',packages:[]} } },
+      'valorant': { fullName: 'Valorant', regions: { 'MY':{name:'Malaysia',flag:'🇲🇾',packages:[]}, 'ID':{name:'Indonesia',flag:'🇮🇩',packages:[]}, 'PH':{name:'Philippines',flag:'🇵🇭',packages:[]}, 'TH':{name:'Thailand',flag:'🇹🇭',packages:[]} } },
+      'freefire': { fullName: 'Free Fire', regions: { 'MY':{name:'Malaysia',flag:'🇲🇾',packages:[]}, 'MY_INSTANT':{name:'Malaysia-Instant',flag:'🇲🇾',packages:[]}, 'ID_INSTANT':{name:'Indonesia-Instant',flag:'🇮🇩',packages:[]}, 'GLOBAL':{name:'Global',flag:'🌐',packages:[]} } },
+      'leagueoflegends': { fullName: 'League of Legends', regions: { 'MY':{name:'Malaysia',flag:'🇲🇾',packages:[]}, 'ID':{name:'Indonesia',flag:'🇮🇩',packages:[]}, 'PH':{name:'Philippines',flag:'🇵🇭',packages:[]}, 'SG':{name:'Singapore',flag:'🇸🇬',packages:[]} } },
+      'genshinimpact': { fullName: 'Genshin Impact', regions: { 'America':{name:'America',packages:[]}, 'Asia':{name:'Asia',packages:[]}, 'Europe':{name:'Europe',packages:[]}, 'TW_HK_MO':{name:'TW, HK, MO',packages:[]} } },
+      'honkaistarrail': { fullName: 'Honkai: Star Rail', regions: { 'America':{name:'America',packages:[]}, 'Asia':{name:'Asia',packages:[]}, 'Europe':{name:'Europe',packages:[]}, 'TW_HK_MO':{name:'TW, HK, MO',packages:[]} } },
+      'zenlesszonezero': { fullName: 'Zenless Zone Zero', regions: { 'America':{name:'America',packages:[]}, 'Asia':{name:'Asia',packages:[]}, 'Europe':{name:'Europe',packages:[]}, 'TW_HK_MO':{name:'TW, HK, MO',packages:[]} } },
+      'steam': { fullName: 'Steam Wallet Code', regions: { 'MYR':{name:'Malaysia (MYR)',flag:'🇲🇾',packages:[]}, 'IDR':{name:'Indonesia (IDR)',flag:'🇮🇩',packages:[]}, 'THB':{name:'Thailand (THB)',flag:'🇹🇭',packages:[]}, 'SGD':{name:'Singapore (SGD)',flag:'🇸🇬',packages:[]} } },
+      'nintendo': { fullName: 'Nintendo eShop Gift Card', regions: { 'US':{name:'United States',flag:'🇺🇸',packages:[]}, 'JP':{name:'Japan',flag:'🇯🇵',packages:[]}, 'HK':{name:'Hong Kong',flag:'🇭🇰',packages:[]}, 'BR':{name:'Brazil',flag:'🇧🇷',packages:[]} } },
+      'honorofkings': { fullName: 'Honor of Kings', regions: { 'MY':{name:'Malaysia',flag:'🇲🇾',packages:[]}, 'SG':{name:'Singapore',flag:'🇸🇬',packages:[]}, 'ID':{name:'Indonesia',flag:'🇮🇩',packages:[]}, 'GLOBAL':{name:'Global',flag:'🌐',packages:[]} } },
+      'pubgmobile': { fullName: 'PUBG Mobile', regions: { 'MY':{name:'Malaysia',flag:'🇲🇾',packages:[]}, 'ID':{name:'Indonesia',flag:'🇮🇩',packages:[]}, 'TH':{name:'Thailand',flag:'🇹🇭',packages:[]} } }
     };
 
     const packageVersion = "v3";
@@ -161,7 +130,8 @@
       users: Store.read('lf_users', {}),
       orders: Store.read('lf_orders', []),
       packages: Store.read('lelefon_packages', DEFAULT_PACKAGES),
-      wallets: Store.read('lf_wallets', {})
+      wallets: Store.read('lf_wallets', {}),
+      walletLogs: Store.read('lf_wallet_logs', [])
     };
 
     const adminLoginEl = document.getElementById('adminLogin'), adminContentEl = document.getElementById('adminContent'), doAdminLoginBtn = document.getElementById('doAdminLogin'), userListEl = document.getElementById('userList'), orderListEl = document.getElementById('orderList'), gameSelectEl = document.getElementById('gameSelect'), packageListEl = document.getElementById('packageList'), packageNameEl = document.getElementById('packageName'), packagePriceEl = document.getElementById('packagePrice'), addPackageBtn = document.getElementById('addPackage'), logoutAdminBtn = document.getElementById('logoutAdmin'), authAreaEl = document.getElementById('authArea'), userEmailForWalletEl = document.getElementById('userEmailForWallet'), newWalletBalanceEl = document.getElementById('newWalletBalance'), updateUserBalanceBtn = document.getElementById('updateUserBalance');
@@ -171,6 +141,7 @@
       Store.write('lf_orders', state.orders);
       Store.write('lelefon_packages', state.packages);
       Store.write('lf_wallets', state.wallets);
+      Store.write('lf_wallet_logs', state.walletLogs);
     }
 
     function showAdminPanel() {
@@ -202,7 +173,11 @@
       const userEmail = userEmailForWalletEl.value.trim().toLowerCase();
       const newBalance = parseFloat(newWalletBalanceEl.value);
       if (!userEmail || isNaN(newBalance)) { alert('Please enter a valid user email and a numeric balance.'); return; }
-      if (!state.users[userEmail] && !state.wallets[userEmail]) { alert(`User with email "${userEmail}" not found.`); return; }
+      if (!state.users[userEmail]) { alert(`User with email "${userEmail}" not found.`); return; }
+      // If user exists but has no wallet, create one.
+      if (state.wallets[userEmail] === undefined) {
+          state.wallets[userEmail] = 0;
+      }
       state.wallets[userEmail] = newBalance;
       saveState();
       alert(`Wallet balance for ${userEmail} updated to ${newBalance.toFixed(2)} MYR.`);
@@ -211,20 +186,118 @@
     }
 
     function renderOrderList() {
-      orderListEl.innerHTML = `<table class="table"><thead><tr><th>Order ID</th><th>User</th><th>Total</th><th>Status</th><th>Actions</th></tr></thead><tbody>${state.orders.map(order => `<tr><td>${order.id}</td><td>${order.user}</td><td>${order.total.toFixed(2)} MYR</td><td><span class="badge status-${order.status.toLowerCase()}">${order.status}</span></td><td><button class="btn ghost complete-order" data-order-id="${order.id}" ${order.status === 'Completed' || order.status === 'Cancelled' ? 'disabled' : ''}>Complete</button><button class="btn ghost cancel-order" data-order-id="${order.id}" ${order.status === 'Cancelled' || order.status === 'Completed' ? 'disabled' : ''}>Cancel</button></td></tr>`).join('')}</tbody></table>`;
-      document.querySelectorAll('.complete-order, .cancel-order').forEach(button => {
-        button.addEventListener('click', (e) => {
-          const orderId = e.target.dataset.orderId;
-          const newStatus = e.target.classList.contains('complete-order') ? 'Completed' : 'Cancelled';
-          const orderIndex = state.orders.findIndex(o => o.id === orderId);
-          if (orderIndex > -1) {
-            state.orders[orderIndex].status = newStatus;
-            saveState();
-            renderOrderList();
-          }
+        const tableHeader = `
+            <thead>
+                <tr>
+                    <th>Order Details</th>
+                    <th>Items</th>
+                    <th>Status & Actions</th>
+                </tr>
+            </thead>`;
+
+        const tableBody = state.orders.map((order, orderIndex) => {
+            const itemsHtml = order.items.map((item, itemIndex) => {
+                let pinHtml = '';
+                if (item.type === 'card') {
+                    pinHtml = `
+                        <div class="pin-input-group">
+                            <input type="text" class="pin-input" placeholder="Enter PIN" data-order-idx="${orderIndex}" data-item-idx="${itemIndex}" value="${item.pin || ''}">
+                            <button class="btn ghost save-pin" data-order-idx="${orderIndex}" data-item-idx="${itemIndex}">Save PIN</button>
+                        </div>`;
+                }
+                return `
+                    <li>
+                        <strong>${item.gameName}</strong> - ${item.pkgLabel} (x${item.qty})
+                        <div class="muted">${item.uid ? `UID: ${item.uid}`: 'Game Card'}</div>
+                        ${pinHtml}
+                    </li>`;
+            }).join('');
+
+            let refundButtonHtml = '';
+            if (order.status === 'Cancelled' && order.method === 'LF Wallet' && !order.refunded) {
+                refundButtonHtml = `<button class="btn primary refund-order" data-order-id="${order.id}">Refund to Wallet</button>`;
+            } else if (order.refunded) {
+                refundButtonHtml = `<button class="btn" disabled>Refunded</button>`;
+            }
+
+            return `
+                <tr>
+                    <td>
+                        <strong>ID:</strong> ${order.id}<br>
+                        <strong>User:</strong> ${order.user}<br>
+                        <strong>Total:</strong> ${order.total.toFixed(2)} MYR<br>
+                        <strong>Method:</strong> ${order.method}
+                    </td>
+                    <td><ul class="order-items-list">${itemsHtml}</ul></td>
+                    <td>
+                        <div class="badge status-${order.status.toLowerCase()}">${order.status}</div>
+                        <div class="btn-row">
+                            <button class="btn ghost complete-order" data-order-id="${order.id}" ${order.status === 'Completed' || order.status === 'Cancelled' ? 'disabled' : ''}>Complete</button>
+                            <button class="btn ghost cancel-order" data-order-id="${order.id}" ${order.status === 'Cancelled' || order.status === 'Completed' ? 'disabled' : ''}>Cancel</button>
+                            ${refundButtonHtml}
+                        </div>
+                    </td>
+                </tr>`;
+        }).join('');
+
+        orderListEl.innerHTML = `<table class="table">${tableHeader}<tbody>${tableBody}</tbody></table>`;
+        
+        // --- EVENT LISTENERS ---
+        document.querySelectorAll('.complete-order, .cancel-order').forEach(button => {
+            button.addEventListener('click', (e) => {
+                const orderId = e.target.dataset.orderId;
+                const newStatus = e.target.classList.contains('complete-order') ? 'Completed' : 'Cancelled';
+                const orderIndex = state.orders.findIndex(o => o.id === orderId);
+                if (orderIndex > -1) {
+                    state.orders[orderIndex].status = newStatus;
+                    saveState();
+                    renderOrderList();
+                }
+            });
         });
-      });
+
+        document.querySelectorAll('.save-pin').forEach(button => {
+            button.addEventListener('click', e => {
+                const { orderIdx, itemIdx } = e.target.dataset;
+                const pinValue = document.querySelector(`.pin-input[data-order-idx="${orderIdx}"][data-item-idx="${itemIdx}"]`).value;
+                if(pinValue) {
+                    state.orders[orderIdx].items[itemIdx].pin = pinValue.trim();
+                    saveState();
+                    alert('PIN saved!');
+                    renderOrderList();
+                } else {
+                    alert('Please enter a PIN value.');
+                }
+            });
+        });
+
+        document.querySelectorAll('.refund-order').forEach(button => {
+            button.addEventListener('click', e => {
+                const orderId = e.target.dataset.orderId;
+                const order = state.orders.find(o => o.id === orderId);
+                if (order && confirm(`Refund ${order.total.toFixed(2)} MYR to ${order.user}?`)) {
+                    // Check if user exists. An order should always have a valid user.
+                    if (state.users[order.user]) {
+                        // If the user's wallet doesn't exist, initialize it to 0.
+                        if (state.wallets[order.user] === undefined) {
+                            state.wallets[order.user] = 0;
+                        }
+                        
+                        // Proceed with refund
+                        state.wallets[order.user] += order.total;
+                        state.walletLogs.unshift({id:'WL'+Date.now().toString(36),type:'refund',delta:order.total,createdAt:Date.now(),note:`Refund for Order ${order.id}`});
+                        order.refunded = true; // Mark order as refunded
+                        saveState();
+                        alert('Refund successful.');
+                        renderOrderList();
+                    } else {
+                        alert('Error: User account for this order not found.');
+                    }
+                }
+            });
+        });
     }
+
 
     function renderGameOptions() {
       const gameKeys = Object.keys(state.packages);

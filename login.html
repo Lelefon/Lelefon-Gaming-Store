@@ -36,8 +36,13 @@
 
 <script>
 const Store={read:(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}},write:(k,v)=>localStorage.setItem(k,JSON.stringify(v))};
-const state={user:Store.read('lf_user',null),wallet:Store.read('lf_wallet',0),cart:Store.read('lf_cart',[]),users:Store.read('lf_users',{})};
-document.getElementById('walletAmt').textContent=(+state.wallet||0).toFixed(2);
+
+// Reading the central wallets store
+const state={user:Store.read('lf_user',null),wallets:Store.read('lf_wallets',{}),cart:Store.read('lf_cart',[]),users:Store.read('lf_users',{})};
+
+// Update navbar based on central wallet data
+const userBalance = state.user ? (state.wallets[state.user.email] || 0) : 0;
+document.getElementById('walletAmt').textContent = userBalance.toFixed(2);
 document.getElementById('cartCount').textContent=state.cart.reduce((s,i)=>s+(i.qty||1),0);
 
 function gotoReturn(){ const back=new URLSearchParams(location.search).get('r'); location.href = back || 'index.html'; }
@@ -52,8 +57,24 @@ document.getElementById('doRegister').onclick=()=>{
   const email=document.getElementById('email').value.trim().toLowerCase();
   const pass=document.getElementById('pass').value;
   if(!email||!pass){ alert('Enter email and password.'); return; }
-  const users=state.users; if(users[email]){ alert('Email already registered.'); return; }
-  users[email]={pass:btoa(pass)}; Store.write('lf_users',users); Store.write('lf_user',{email}); alert('Registered & logged in.'); gotoReturn();
+  
+  const users = state.users;
+  const wallets = state.wallets;
+  
+  if(users[email]){ alert('Email already registered.'); return; }
+  
+  // Create user
+  users[email]={pass:btoa(pass)};
+  // IMPORTANT: Initialize wallet for the new user
+  wallets[email] = 0;
+  
+  // Save all updated data
+  Store.write('lf_users', users);
+  Store.write('lf_wallets', wallets); // Save the updated wallets object
+  Store.write('lf_user',{email});
+  
+  alert('Registered & logged in.');
+  gotoReturn();
 };
 </script>
 </body>
