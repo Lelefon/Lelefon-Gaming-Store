@@ -401,8 +401,6 @@ async function loadOrders(){
     for (const o of orders) {
       const isProcessing = o.status === 'Processing';
       const isCancelled  = o.status === 'Cancelled';
-      const isCompleted  = o.status === 'Completed';
-      const isRefunded   = o.status === 'Refunded';
 
       html += `<tr id="row-${o.id}">
         <td><strong>${o.id}</strong></td>
@@ -503,9 +501,9 @@ async function changeStatus(orderId, endpoint, successMsg){
 }
 
 window.completeOrder = (orderId)=> changeStatus(orderId, '/admin/order/complete', 'Order marked as Completed.');
-// CANCEL: now only marks as Cancelled (no refund)
+// CANCEL: only marks as Cancelled (no refund)
 window.cancelOrder   = (orderId)=> changeStatus(orderId, '/admin/order/cancel',   'Order marked as Cancelled.');
-// REFUND: credits wallet and flips status to Refunded
+// REFUND: credits wallet (when applicable) and flips status to Refunded
 window.refundOrder   = (orderId)=> changeStatus(orderId, '/admin/order/refund',   'Order refunded.');
 
 if (sessionStorage.getItem('isAdmin') === 'true') showAdminPanel();
