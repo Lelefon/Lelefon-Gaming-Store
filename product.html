@@ -53,7 +53,7 @@
   </div>
 </main>
 <script>
-    const API_BASE_URL = 'http://localhost:8787/api';
+    const API_BASE_URL = 'https://api.lelefon-67.workers.dev/api';
     const Store = { read: (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d } catch { return d; } }, write: (k, v) => localStorage.setItem(k, JSON.stringify(v)) };
     
     const user = Store.read('lf_user');
