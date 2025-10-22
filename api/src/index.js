@@ -1,10 +1,45 @@
 // =========================
-//  Helper / Handler funcs
+//  Helpers
 // =========================
 
-/**
- * ADMIN login
- */
+function b64(s) { return typeof btoa === 'function' ? btoa(s) : Buffer.from(s).toString('base64'); }
+
+function normEmail(e) { return (e || '').toLowerCase(); }
+
+function newOrderId() {
+  // ORD-<base36 timestamp>-<base36 rand>
+  return `ORD-${Date.now().toString(36)}-${Math.floor(Math.random() * 1e8).toString(36)}`;
+}
+
+async function creditWallet(env, email, amount) {
+  const em = normEmail(email);
+  await env.DB.batch([
+    env.DB.prepare('INSERT OR IGNORE INTO wallets (user_email, balance) VALUES (?, 0)').bind(em),
+    env.DB.prepare('UPDATE wallets SET balance = balance + ? WHERE user_email = ?').bind(amount, em),
+  ]);
+}
+
+async function debitWallet(env, email, amount) {
+  const em = normEmail(email);
+  const w = await env.DB.prepare('SELECT balance FROM wallets WHERE user_email = ?').bind(em).first();
+  const bal = w ? Number(w.balance) : 0;
+  if (bal < amount) return { ok: false, balance: bal };
+  await env.DB.prepare('UPDATE wallets SET balance = balance - ? WHERE user_email = ?').bind(amount, em).run();
+  return { ok: true, balance: bal - amount };
+}
+
+async function getOrder(env, orderId) {
+  return await env.DB.prepare(
+    'SELECT id, user_email, total, payment_method, status FROM orders WHERE id = ?'
+  ).bind(orderId).first();
+}
+
+
+// =========================
+//  Auth Handlers
+// =========================
+
+/** ADMIN login (used by admin.html) */
 async function handleAdminLogin(request, env) {
   const { email, password } = await request.json();
 
@@ -14,14 +49,12 @@ async function handleAdminLogin(request, env) {
 
   const user = await env.DB.prepare(
     'SELECT email, password_hash, role FROM users WHERE email = ?'
-  ).bind(email).first();
+  ).bind(normEmail(email)).first();
 
   if (!user) return Response.json({ success: false, message: 'Invalid admin credentials.' }, { status: 401 });
-
-  if (user.password_hash !== btoa(password)) {
+  if (user.password_hash !== b64(password)) {
     return Response.json({ success: false, message: 'Invalid admin credentials.' }, { status: 401 });
   }
-
   if (user.role !== 'admin') {
     return Response.json({ success: false, message: 'Access denied. Not an administrator.' }, { status: 403 });
   }
@@ -29,9 +62,7 @@ async function handleAdminLogin(request, env) {
   return Response.json({ success: true, email: user.email, role: user.role });
 }
 
-/**
- * USER login (local + google)
- */
+/** USER login (local or google) */
 async function handleUserLogin(request, env) {
   const { email, password, provider } = await request.json();
 
@@ -41,7 +72,7 @@ async function handleUserLogin(request, env) {
 
   const user = await env.DB.prepare(
     'SELECT email, password_hash, role FROM users WHERE email = ?'
-  ).bind(email.toLowerCase()).first();
+  ).bind(normEmail(email)).first();
 
   if (!user) return Response.json({ success: false, message: 'Account not found.' }, { status: 404 });
 
@@ -50,7 +81,7 @@ async function handleUserLogin(request, env) {
       return Response.json({ success: false, message: 'This account is not a Google login.' }, { status: 401 });
     }
   } else {
-    if (!password || user.password_hash !== btoa(password)) {
+    if (!password || user.password_hash !== b64(password)) {
       return Response.json({ success: false, message: 'Invalid email or password.' }, { status: 401 });
     }
   }
@@ -58,10 +89,7 @@ async function handleUserLogin(request, env) {
   return Response.json({ success: true, email: user.email, role: user.role || 'user' });
 }
 
-/**
- * Registration (local + google)
- * Ensures users + wallets rows exist (idempotent).
- */
+/** Registration (local or google) */
 async function handleRegister(request, env) {
   const { email, password, provider } = await request.json();
 
@@ -69,13 +97,13 @@ async function handleRegister(request, env) {
     return Response.json({ success: false, message: 'Email is required.' }, { status: 400 });
   }
 
-  const normEmail = email.toLowerCase();
-  const hash = provider === 'google' ? 'GOOGLE_SSO' : btoa(password || '');
+  const em = normEmail(email);
+  const hash = provider === 'google' ? 'GOOGLE_SSO' : b64(password || '');
 
   try {
     await env.DB.batch([
-      env.DB.prepare('INSERT OR IGNORE INTO users (email, password_hash) VALUES (?, ?)').bind(normEmail, hash),
-      env.DB.prepare('INSERT OR IGNORE INTO wallets (user_email, balance) VALUES (?, 0)').bind(normEmail),
+      env.DB.prepare('INSERT OR IGNORE INTO users (email, password_hash) VALUES (?, ?)').bind(em, hash),
+      env.DB.prepare('INSERT OR IGNORE INTO wallets (user_email, balance) VALUES (?, 0)').bind(em),
     ]);
 
     return Response.json({ success: true, message: 'Registered successfully!' });
@@ -85,125 +113,75 @@ async function handleRegister(request, env) {
   }
 }
 
-/**
- * (Optional) Top up helper
- */
+
+// =========================
+/** Wallet & Orders */
+// =========================
+
 async function handleTopup(request, env) {
   const { email, amount } = await request.json();
-  if (!email || typeof amount !== 'number' || !isFinite(amount) || amount <= 0) {
-    return Response.json({ success: false, message: 'Valid email and amount are required.' }, { status: 400 });
-  }
-  const norm = email.toLowerCase();
+  const amt = Number(amount || 0);
+  if (!email || !(amt > 0)) return Response.json({ success: false, message: 'email and positive amount required' }, { status: 400 });
 
-  // Ensure wallet row exists
-  await env.DB.prepare('INSERT OR IGNORE INTO wallets (user_email, balance) VALUES (?, 0)').bind(norm).run();
-
-  await env.DB.prepare('UPDATE wallets SET balance = balance + ? WHERE user_email = ?').bind(amount, norm).run();
-  const row = await env.DB.prepare('SELECT balance FROM wallets WHERE user_email = ?').bind(norm).first();
-
-  return Response.json({ success: true, balance: row?.balance ?? 0 });
+  await creditWallet(env, email, amt);
+  const w = await env.DB.prepare('SELECT balance FROM wallets WHERE user_email = ?').bind(normEmail(email)).first();
+  return Response.json({ success: true, balance: w ? Number(w.balance) : 0 });
 }
 
 /**
- * Create order (wallet or simulated iPay88)
+ * Create an order:
+ * body: { user_email, items:[{gameName, pkgLabel, price, qty, uid?, pin?}], total, method: 'LF Wallet' | 'iPay88', channel? }
+ * - For 'LF Wallet': checks funds, debits, then creates order.
+ * - For 'iPay88': simulates gateway success (no wallet change).
  */
 async function handleCreateOrder(request, env) {
-  const { user_email, items, total, method } = await request.json();
+  const body = await request.json();
+  const email = normEmail(body.user_email);
+  const items = Array.isArray(body.items) ? body.items : [];
+  const total = Number(body.total || 0);
+  const method = body.method || 'LF Wallet';
 
-  if (!user_email || !Array.isArray(items) || items.length === 0 || typeof total !== 'number') {
+  if (!email || !items.length || !(total > 0)) {
     return Response.json({ success: false, message: 'Invalid order payload.' }, { status: 400 });
   }
 
-  const email = user_email.toLowerCase();
-  const orderId = `ORD-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-  const methodStr = String(method || '').trim();
-  const isWallet = methodStr.toLowerCase().includes('wallet'); // matches "wallet" or "LF Wallet"
-
-  try {
-    // Ensure wallet row exists for all users (even if paying iPay88)
-    await env.DB.prepare('INSERT OR IGNORE INTO wallets (user_email, balance) VALUES (?, 0)').bind(email).run();
-
-    let status = 'Pending Payment';
-    let newBalance = null;
-
-    if (isWallet) {
-      const wallet = await env.DB.prepare('SELECT balance FROM wallets WHERE user_email = ?').bind(email).first();
-      const balance = wallet ? Number(wallet.balance) : 0;
-
-      if (balance < total) {
-        return Response.json({ success: false, message: 'Insufficient wallet balance.' }, { status: 400 });
-      }
-
-      // Deduct wallet & mark as paid/processing
-      newBalance = balance - total;
-      status = 'Processing';
-
-      // Order insert + items + wallet deduction
-      const stmts = [
-        env.DB.prepare(
-          'INSERT INTO orders (id, user_email, total, payment_method, status) VALUES (?, ?, ?, ?, ?)'
-        ).bind(orderId, email, total, 'LF Wallet', status),
-        env.DB.prepare('UPDATE wallets SET balance = ? WHERE user_email = ?').bind(newBalance, email)
-      ];
-
-      for (const it of items) {
-        stmts.push(
-          env.DB.prepare(
-            'INSERT INTO order_items (order_id, game_name, package_label, quantity, price_at_purchase, uid, pin) VALUES (?, ?, ?, ?, ?, ?, ?)'
-          ).bind(
-            orderId,
-            it.gameName || '',
-            it.pkgLabel || '',
-            Number(it.qty || 1),
-            Number(it.price || 0),
-            it.uid || null,
-            it.pin || null
-          )
-        );
-      }
-
-      await env.DB.batch(stmts);
-      return Response.json({ success: true, orderId, balance: newBalance });
+  // For wallet payments, ensure sufficient funds then debit
+  if (method === 'LF Wallet') {
+    const deb = await debitWallet(env, email, total);
+    if (!deb.ok) {
+      return Response.json({ success: false, message: `Insufficient wallet balance (have ${deb.balance.toFixed(2)}).` }, { status: 400 });
     }
-
-    // Simulated iPay88: don’t touch wallet; mark as Pending Payment
-    const stmts = [
-      env.DB.prepare(
-        'INSERT INTO orders (id, user_email, total, payment_method, status) VALUES (?, ?, ?, ?, ?)'
-      ).bind(orderId, email, total, 'iPay88', status)
-    ];
-    for (const it of items) {
-      stmts.push(
-        env.DB.prepare(
-          'INSERT INTO order_items (order_id, game_name, package_label, quantity, price_at_purchase, uid, pin) VALUES (?, ?, ?, ?, ?, ?, ?)'
-        ).bind(
-          orderId,
-          it.gameName || '',
-          it.pkgLabel || '',
-          Number(it.qty || 1),
-          Number(it.price || 0),
-          it.uid || null,
-          it.pin || null
-        )
-      );
-    }
-    await env.DB.batch(stmts);
-
-    // In a real integration you would now return the payment URL/session
-    return Response.json({
-      success: true,
-      orderId,
-      payment: {
-        provider: 'iPay88',
-        simulated: true,
-        message: 'Redirect to iPay88 would happen here.'
-      }
-    });
-  } catch (err) {
-    console.error('CREATE ORDER ERROR:', err);
-    return Response.json({ success: false, message: 'Failed to create order.' }, { status: 500 });
   }
+
+  const orderId = newOrderId();
+
+  // Insert order
+  await env.DB.prepare(
+    'INSERT INTO orders (id, user_email, total, payment_method, status) VALUES (?, ?, ?, ?, ?)'
+  ).bind(orderId, email, total, method, 'Processing').run();
+
+  // Insert items
+  for (const it of items) {
+    const qty = Number(it.qty || 1);
+    const price = Number(it.price || 0);
+    await env.DB.prepare(
+      `INSERT INTO order_items (order_id, game_name, package_label, quantity, price_at_purchase, uid, pin)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`
+    ).bind(
+      orderId,
+      it.gameName || '',
+      it.pkgLabel || '',
+      qty,
+      price,
+      it.uid || null,
+      it.pin || null
+    ).run();
+  }
+
+  // You may have fulfillment later; for now we keep as Processing.
+  return Response.json({ success: true, orderId });
 }
+
 
 // =========================
 //  Main fetch router
@@ -247,19 +225,42 @@ export default {
       } else if ((url.pathname === '/api/login/user' || url.pathname === '/api/user/login') && request.method === 'POST') {
         response = await handleUserLogin(request, env);
 
-      // Back-compat old admin login path:
+      // Back-compat: old admin login path used by admin.html
       } else if (url.pathname === '/api/login' && request.method === 'POST') {
         response = await handleAdminLogin(request, env);
+
 
       // ----- Catalog -----
       } else if (url.pathname === '/api/games' && request.method === 'GET') {
         const { results } = await env.DB.prepare('SELECT * FROM games').all();
         response = Response.json(results);
 
+      } else if (url.pathname === '/api/admin/game' && request.method === 'POST') {
+        const data = await request.json();
+        await env.DB.prepare(
+          'INSERT OR REPLACE INTO games (id, name, image_url, category, regionable, uid_required) VALUES (?, ?, ?, ?, ?, ?)'
+        ).bind(
+          data.id, data.name, data.image_url, data.category, data.regionable ? 1 : 0, data.uid_required ? 1 : 0
+        ).run();
+        response = Response.json({ success: true });
+
+      } else if (url.pathname === '/api/admin/game' && request.method === 'DELETE') {
+        const gameId = url.searchParams.get('id');
+        // Deleting game will cascade to regions/packages (per schema)
+        await env.DB.prepare('DELETE FROM games WHERE id = ?').bind(gameId).run();
+        response = Response.json({ success: true });
+
       } else if (url.pathname === '/api/regions' && request.method === 'GET') {
         const gameId = url.searchParams.get('gameId');
         const { results } = await env.DB.prepare('SELECT * FROM regions WHERE game_id = ?').bind(gameId).all();
         response = Response.json(results);
+
+      } else if (url.pathname === '/api/admin/region' && request.method === 'POST') {
+        const data = await request.json();
+        await env.DB.prepare(
+          'INSERT INTO regions (game_id, region_key, name, flag) VALUES (?, ?, ?, ?)'
+        ).bind(data.game_id, data.region_key, data.name, data.flag).run();
+        response = Response.json({ success: true });
 
       } else if (url.pathname === '/api/packages' && request.method === 'GET') {
         const gameId = url.searchParams.get('gameId');
@@ -277,60 +278,6 @@ export default {
         const { results } = await env.DB.prepare(query).bind(...params).all();
         response = Response.json(results);
 
-      // ----- Wallet / Orders -----
-      } else if (url.pathname === '/api/wallet' && request.method === 'GET') {
-        const email = (url.searchParams.get('email') || '').toLowerCase();
-        // Ensure wallet row exists so the UI always gets a number
-        await env.DB.prepare('INSERT OR IGNORE INTO wallets (user_email, balance) VALUES (?, 0)').bind(email).run();
-        const wallet = await env.DB.prepare('SELECT balance FROM wallets WHERE user_email = ?').bind(email).first();
-        response = Response.json({ balance: wallet ? wallet.balance : 0 });
-
-      } else if (url.pathname === '/api/wallet/topup' && request.method === 'POST') {
-        response = await handleTopup(request, env);
-
-      } else if (url.pathname === '/api/orders' && request.method === 'POST') {
-        response = await handleCreateOrder(request, env);
-
-      } else if (url.pathname === '/api/orders' && request.method === 'GET') {
-        const email = (url.searchParams.get('email') || '').toLowerCase();
-        const { results } = await env.DB.prepare(
-          'SELECT * FROM orders WHERE user_email = ? ORDER BY created_at DESC'
-        ).bind(email).all();
-        response = Response.json(results);
-
-// ----- Admin utilities -----
-} else if (url.pathname === '/api/admin/users' && request.method === 'GET') {
-  const { results } = await env.DB.prepare(
-    'SELECT u.email, u.role, w.balance FROM users u LEFT JOIN wallets w ON u.email = w.user_email ORDER BY u.created_at DESC'
-  ).all();
-  response = Response.json(results);
-
-// NEW: list recent orders for admin
-} else if (url.pathname === '/api/admin/orders' && request.method === 'GET') {
-  const { results } = await env.DB.prepare(
-    `SELECT id, user_email, total, payment_method, status, created_at
-     FROM orders
-     ORDER BY datetime(created_at) DESC
-     LIMIT 100`
-  ).all();
-  response = Response.json(results);
-
-} else if (url.pathname === '/api/admin/wallet' && request.method === 'POST') {
-        const data = await request.json();
-        await env.DB.prepare(
-          'INSERT OR REPLACE INTO games (id, name, image_url, category, regionable, uid_required) VALUES (?, ?, ?, ?, ?, ?)'
-        ).bind(
-          data.id, data.name, data.image_url, data.category, data.regionable ? 1 : 0, data.uid_required ? 1 : 0
-        ).run();
-        response = Response.json({ success: true });
-
-      } else if (url.pathname === '/api/admin/region' && request.method === 'POST') {
-        const data = await request.json();
-        await env.DB.prepare(
-          'INSERT INTO regions (game_id, region_key, name, flag) VALUES (?, ?, ?, ?)'
-        ).bind(data.game_id, data.region_key, data.name, data.flag).run();
-        response = Response.json({ success: true });
-
       } else if (url.pathname === '/api/admin/package' && request.method === 'POST') {
         const data = await request.json();
         const id = `${data.game_id}-${data.label.replace(/\s+/g, '-')}-${Date.now().toString(36)}`;
@@ -344,18 +291,116 @@ export default {
         await env.DB.prepare('DELETE FROM packages WHERE id = ?').bind(id).run();
         response = Response.json({ success: true });
 
-      // (Optional) Delete a game and its children
-      } else if (url.pathname === '/api/admin/game' && request.method === 'DELETE') {
-        const id = url.searchParams.get('id');
-        if (!id) {
-          response = Response.json({ success: false, message: 'Missing id' }, { status: 400 });
+
+      // ----- Wallet / Orders (user) -----
+      } else if (url.pathname === '/api/wallet' && request.method === 'GET') {
+        const email = normEmail(url.searchParams.get('email'));
+        const wallet = await env.DB.prepare('SELECT balance FROM wallets WHERE user_email = ?').bind(email).first();
+        response = Response.json({ balance: wallet ? Number(wallet.balance) : 0 });
+
+      } else if (url.pathname === '/api/wallet/topup' && request.method === 'POST') {
+        response = await handleTopup(request, env);
+
+      } else if (url.pathname === '/api/orders' && request.method === 'POST') {
+        response = await handleCreateOrder(request, env);
+
+      } else if (url.pathname === '/api/orders' && request.method === 'GET') {
+        const email = normEmail(url.searchParams.get('email'));
+        const { results } = await env.DB.prepare(
+          'SELECT * FROM orders WHERE user_email = ? ORDER BY created_at DESC'
+        ).bind(email).all();
+        response = Response.json(results);
+
+
+      // ----- Admin utilities -----
+      } else if (url.pathname === '/api/admin/users' && request.method === 'GET') {
+        const { results } = await env.DB.prepare(
+          'SELECT u.email, u.role, w.balance FROM users u LEFT JOIN wallets w ON u.email = w.user_email ORDER BY u.created_at DESC'
+        ).all();
+        response = Response.json(results);
+
+      } else if (url.pathname === '/api/admin/wallet' && request.method === 'POST') {
+        const { email, newBalance } = await request.json();
+        await env.DB.prepare('INSERT OR IGNORE INTO wallets (user_email, balance) VALUES (?, 0)')
+          .bind(normEmail(email)).run();
+        await env.DB.prepare('UPDATE wallets SET balance = ? WHERE user_email = ?')
+          .bind(Number(newBalance || 0), normEmail(email))
+          .run();
+        response = Response.json({ success: true });
+
+      // Orders list for admin
+      } else if (url.pathname === '/api/admin/orders' && request.method === 'GET') {
+        const { results } = await env.DB.prepare(
+          'SELECT id, user_email, total, payment_method, status, created_at FROM orders ORDER BY created_at DESC LIMIT 200'
+        ).all();
+        response = Response.json(results);
+
+      // Order items for admin
+      } else if (url.pathname === '/api/admin/order-items' && request.method === 'GET') {
+        const orderId = url.searchParams.get('orderId');
+        const { results } = await env.DB.prepare(
+          `SELECT id, order_id, game_name, package_label, quantity, price_at_purchase, uid, pin
+           FROM order_items
+           WHERE order_id = ?
+           ORDER BY id ASC`
+        ).bind(orderId).all();
+        response = Response.json(results);
+
+      // Save a PIN on a game-card item
+      } else if (url.pathname === '/api/admin/order/pin' && request.method === 'POST') {
+        const { order_id, item_id, pin } = await request.json();
+        if (!order_id || !item_id) {
+          response = Response.json({ success: false, message: 'order_id and item_id are required' }, { status: 400 });
         } else {
-          await env.DB.batch([
-            env.DB.prepare('DELETE FROM packages WHERE game_id = ?').bind(id),
-            env.DB.prepare('DELETE FROM regions  WHERE game_id = ?').bind(id),
-            env.DB.prepare('DELETE FROM games    WHERE id = ?').bind(id),
-          ]);
+          await env.DB.prepare('UPDATE order_items SET pin = ? WHERE id = ? AND order_id = ?')
+            .bind(pin || '', item_id, order_id).run();
           response = Response.json({ success: true });
+        }
+
+      // Complete
+      } else if (url.pathname === '/api/admin/order/complete' && request.method === 'POST') {
+        const { order_id } = await request.json();
+        if (!order_id) {
+          response = Response.json({ success: false, message: 'order_id required' }, { status: 400 });
+        } else {
+          await env.DB.prepare('UPDATE orders SET status = ? WHERE id = ?').bind('Completed', order_id).run();
+          response = Response.json({ success: true });
+        }
+
+      // Cancel (refund once)
+      } else if (url.pathname === '/api/admin/order/cancel' && request.method === 'POST') {
+        const { order_id } = await request.json();
+        if (!order_id) {
+          response = Response.json({ success: false, message: 'order_id required' }, { status: 400 });
+        } else {
+          const o = await getOrder(env, order_id);
+          if (!o) {
+            response = Response.json({ success: false, message: 'Order not found' }, { status: 404 });
+          } else if (o.status === 'Refunded' || o.status === 'Cancelled') {
+            response = Response.json({ success: true, message: 'Already refunded/cancelled' });
+          } else {
+            await creditWallet(env, o.user_email, Number(o.total));
+            await env.DB.prepare('UPDATE orders SET status = ? WHERE id = ?').bind('Cancelled', order_id).run();
+            response = Response.json({ success: true });
+          }
+        }
+
+      // Refund (idempotent)
+      } else if (url.pathname === '/api/admin/order/refund' && request.method === 'POST') {
+        const { order_id } = await request.json();
+        if (!order_id) {
+          response = Response.json({ success: false, message: 'order_id required' }, { status: 400 });
+        } else {
+          const o = await getOrder(env, order_id);
+          if (!o) {
+            response = Response.json({ success: false, message: 'Order not found' }, { status: 404 });
+          } else if (o.status === 'Refunded' || o.status === 'Cancelled') {
+            response = Response.json({ success: true, message: 'Already refunded/cancelled' });
+          } else {
+            await creditWallet(env, o.user_email, Number(o.total));
+            await env.DB.prepare('UPDATE orders SET status = ? WHERE id = ?').bind('Refunded', order_id).run();
+            response = Response.json({ success: true });
+          }
         }
 
       } else {
@@ -366,11 +411,11 @@ export default {
       response = Response.json({ success: false, message: e.message }, { status: 500 });
     }
 
-    // Attach CORS headers for allowed origins
+    // Add CORS if allowed origin
     if (isAllowed) {
       const headers = new Headers(response.headers);
-      const corsHeaders = baseCors(origin);
-      for (const [k, v] of Object.entries(corsHeaders)) headers.set(k, v);
+      const cors = baseCors(origin);
+      for (const [k, v] of Object.entries(cors)) headers.set(k, v);
       return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
     }
 

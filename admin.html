@@ -24,6 +24,19 @@
     .region-group h4 { margin: 16px 0 8px; padding-bottom: 4px; border-bottom: 1px solid #eee; }
     .section-header { font-size: 1.5rem; margin-bottom: 10px; border-bottom: 2px solid #f0f0f0; padding-bottom: 5px; }
     .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+    /* Order details expander */
+    .order-items { background:#fafafa; border:1px dashed var(--border); border-radius:8px; padding:10px; margin:8px 0 0; }
+    .order-items h4 { margin:2px 0 8px; }
+    .pin-row { display:flex; gap:6px; align-items:center; }
+    .pin-row input { width: 260px; }
+    .muted { opacity: .65; }
+
+    /* mini pills */
+    .pill-s { display:inline-block; padding:3px 8px; border-radius:999px; border:1px solid var(--border); font-size:.8rem; }
+    .status-Processing { background:#fff8e6; border-color:#f3d27a; }
+    .status-Completed { background:#eaf8ef; border-color:#9bd4b0; }
+    .status-Cancelled, .status-Refunded { background:#fde8e8; border-color:#f3b1b1; }
   </style>
 </head>
 <body>
@@ -242,7 +255,7 @@ window.editWallet = async (email) => {
   }
 };
 
-// Save game
+// Save / Delete game
 document.getElementById('saveGameBtn').addEventListener('click', async () => {
   const gameData = {
     id: document.getElementById('gameId').value.trim(),
@@ -263,7 +276,6 @@ document.getElementById('saveGameBtn').addEventListener('click', async () => {
   loadGames();
 });
 
-// OPTIONAL: delete a game quickly from the left form
 document.getElementById('deleteGameBtn').addEventListener('click', async () => {
   const id = document.getElementById('gameId').value.trim();
   if (!id) return alert('Enter the Game ID to delete.');
@@ -362,7 +374,7 @@ document.getElementById('addPackageBtn').addEventListener('click', async () => {
   gameSelectEl.dispatchEvent(new Event('change'));
 });
 
-// ---------- NEW: Load recent orders for admin ----------
+// ---------- Order Management ----------
 async function loadOrders(){
   const el = document.getElementById('orderList');
   el.innerHTML = '<p class="muted">Loading recent orders...</p>';
@@ -382,18 +394,26 @@ async function loadOrders(){
           <th>Total (MYR)</th>
           <th>Method</th>
           <th>Status</th>
-          <th>Created At</th>
+          <th>Created</th>
+          <th>Actions</th>
         </tr>
       </thead><tbody>`;
     for (const o of orders) {
-      html += `<tr>
-        <td>${o.id}</td>
+      html += `<tr id="row-${o.id}">
+        <td><strong>${o.id}</strong></td>
         <td>${o.user_email}</td>
         <td>${(+o.total).toFixed(2)}</td>
         <td>${o.payment_method}</td>
-        <td>${o.status}</td>
+        <td><span class="pill-s status-${o.status}">${o.status}</span></td>
         <td>${o.created_at}</td>
-      </tr>`;
+        <td>
+          <button class="btn ghost" onclick="toggleOrder('${o.id}')">View</button>
+          <button class="btn" onclick="completeOrder('${o.id}')">Complete</button>
+          <button class="btn ghost" onclick="cancelOrder('${o.id}')">Cancel</button>
+          <button class="btn danger" onclick="refundOrder('${o.id}')">Refund</button>
+        </td>
+      </tr>
+      <tr id="items-${o.id}" class="hidden"><td colspan="7"><div class="order-items" id="itemsBox-${o.id}">Loading items…</div></td></tr>`;
     }
     html += '</tbody></table>';
     el.innerHTML = html;
@@ -402,6 +422,84 @@ async function loadOrders(){
     el.innerHTML = '<p class="danger">Could not load orders.</p>';
   }
 }
+
+window.toggleOrder = async (orderId) => {
+  const row = document.getElementById(`items-${orderId}`);
+  row.classList.toggle('hidden');
+  if (!row.classList.contains('hidden')) {
+    const box = document.getElementById(`itemsBox-${orderId}`);
+    box.innerHTML = 'Loading items…';
+    try {
+      const res = await fetch(`${API_BASE_URL}/admin/order-items?orderId=${encodeURIComponent(orderId)}`);
+      const items = await res.json();
+      if (!items.length) { box.innerHTML = '<div class="muted">No items.</div>'; return; }
+      box.innerHTML = `
+        <h4>Items</h4>
+        <table class="table">
+          <thead><tr><th>#</th><th>Game</th><th>Package</th><th>Qty</th><th>Price</th><th>UID</th><th>PIN (for card)</th></tr></thead>
+          <tbody>
+            ${items.map(it => `
+              <tr>
+                <td>${it.id}</td>
+                <td>${it.game_name}</td>
+                <td>${it.package_label}</td>
+                <td>${it.quantity}</td>
+                <td>${(+it.price_at_purchase).toFixed(2)}</td>
+                <td>${it.uid || '-'}</td>
+                <td>
+                  <div class="pin-row">
+                    <input type="text" id="pin-${orderId}-${it.id}" placeholder="Enter PIN…" value="${it.pin || ''}">
+                    <button class="btn ghost" onclick="savePin('${orderId}', ${it.id})">Save</button>
+                  </div>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>`;
+    } catch(e) {
+      box.innerHTML = '<div class="danger">Failed to load items.</div>';
+    }
+  }
+};
+
+window.savePin = async (orderId, itemId) => {
+  const input = document.getElementById(`pin-${orderId}-${itemId}`);
+  try {
+    const res = await fetch(`${API_BASE_URL}/admin/order/pin`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ order_id: orderId, item_id: itemId, pin: input.value.trim() })
+    });
+    if (!res.ok) throw new Error('Failed to save PIN.');
+    alert('PIN saved.');
+  } catch(e) {
+    alert('Could not save PIN.');
+  }
+};
+
+async function changeStatus(orderId, endpoint, successMsg){
+  const btnRow = document.querySelector(`#row-${orderId} td:last-child`);
+  const old = btnRow.innerHTML;
+  btnRow.innerHTML = '<span class="muted">Processing…</span>';
+  try {
+    const res = await fetch(`${API_BASE_URL}${endpoint}`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ order_id: orderId })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Failed.');
+    alert(successMsg);
+    loadOrders(); // refresh table
+  } catch(e) {
+    alert(e.message || 'Action failed.');
+    btnRow.innerHTML = old;
+  }
+}
+
+window.completeOrder = (orderId)=> changeStatus(orderId, '/admin/order/complete', 'Order marked as Completed.');
+window.cancelOrder   = (orderId)=> changeStatus(orderId, '/admin/order/cancel',   'Order cancelled & refunded (if not already).');
+window.refundOrder   = (orderId)=> changeStatus(orderId, '/admin/order/refund',   'Order refunded (if not already).');
 
 // Auto-login if session active
 if (sessionStorage.getItem('isAdmin') === 'true') showAdminPanel();
