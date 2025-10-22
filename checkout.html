@@ -7,8 +7,8 @@
 <link rel="stylesheet" href="homestyle.css"/>
 <style>
   .wrap{width:min(1100px,92vw);margin:24px auto}
-  .layout{display:grid;grid-template-columns:1fr;gap:18px} /* Mobile: 1 column */
-  @media (min-width:900px){.layout{grid-template-columns:1.4fr 1fr}} /* Desktop: 2 columns */
+  .layout{display:grid;grid-template-columns:1fr;gap:18px}
+  @media (min-width:900px){.layout{grid-template-columns:1.4fr 1fr}}
 
   .card{border:1px solid #e6e6e6;border-radius:12px;background:#fff;padding:14px}
   .stage{display:flex;gap:12px;margin:6px 0 14px}
@@ -16,8 +16,23 @@
   .stage .on{background:#111;color:#fff;border-color:#111}
   .sum-row{display:flex;justify-content:space-between;border-bottom:1px dashed #eee;padding:8px 4px}
   .total{display:flex;justify-content:space-between;font-weight:800;margin-top:10px}
-  .pay-choice{display:flex;align-items:center;gap:10px;border:1px solid #e6e6e6;border-radius:10px;padding:12px;background:#fff;cursor:pointer;margin-bottom:8px}
+
+  .pay-choice{display:flex;align-items:center;gap:10px;border:1px solid #e6e6e6;border-radius:10px;padding:12px;background:#fff;cursor:pointer;margin-bottom:10px;transition:.15s ease}
+  .pay-choice:hover{box-shadow:0 2px 12px rgba(0,0,0,.06)}
+  .pay-choice input{pointer-events:none}
   .pay-choice.active{outline:2px solid #111}
+
+  .pm-extra{margin:8px 0 0 32px;display:none}
+  .pm-extra.show{display:block}
+
+  .muted{opacity:.66}
+
+  /* Fake iPay88 redirect overlay */
+  .overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:9999}
+  .overlay .panel{width:min(520px,92vw);background:#fff;border-radius:16px;padding:18px;box-shadow:0 10px 40px rgba(0,0,0,.25)}
+  .loader{width:22px;height:22px;border-radius:50%;border:3px solid #ddd;border-top-color:#111;animation:spin 1s linear infinite;margin-right:8px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .bank-select{width:100%;padding:10px;border:1px solid #e6e6e6;border-radius:8px}
 </style>
 </head>
 <body>
@@ -32,115 +47,214 @@
     </nav>
   </div>
 </header>
+
 <main class="wrap">
   <h2>Payment</h2>
   <div class="stage"><div class="on">Order Placed</div><div>Processing</div><div>Completed</div></div>
+
   <div class="layout">
     <section class="card">
       <h3>Order Summary</h3>
       <div id="summary"></div>
       <div class="total"><span>Payable</span><span id="payable">0.00 MYR</span></div>
     </section>
+
     <aside class="card">
       <h3>Payment Methods</h3>
-      <div id="pmWallet" class="pay-choice active" data-method="wallet">
-        <input type="radio" name="pm" checked/><strong>LF Wallet</strong> — Balance <strong id="bal">0.00 MYR</strong>
+
+      <!-- LF WALLET -->
+      <label id="pmWallet" class="pay-choice active" data-method="wallet">
+        <input type="radio" name="pm" checked/>
+        <div>
+          <div><strong>LF Wallet</strong> — Balance <strong id="bal">0.00 MYR</strong></div>
+          <div class="muted" style="margin-top:2px">Instant payment from your Lelefon balance.</div>
+        </div>
+      </label>
+
+      <!-- iPay88 (SIMULATED) -->
+      <label id="pmIpay" class="pay-choice" data-method="ipay88">
+        <input type="radio" name="pm"/>
+        <div>
+          <div><strong>iPay88</strong> — FPX / eWallet / Cards</div>
+          <div class="muted" style="margin-top:2px">Simulated now — real gateway can be attached later.</div>
+        </div>
+      </label>
+      <div id="ipayExtra" class="pm-extra">
+        <label class="muted" style="display:block;margin-bottom:6px">Choose a bank / wallet</label>
+        <select id="ipayChannel" class="bank-select">
+          <option value="fpx">FPX (Online Banking)</option>
+          <option value="tng">Touch ’n Go eWallet</option>
+          <option value="boost">Boost</option>
+          <option value="grabpay">GrabPay</option>
+          <option value="card">Credit / Debit Card</option>
+        </select>
       </div>
-      <!-- For simplicity, other payment methods are disabled in this version -->
-      <div id="pmFPX" class="pay-choice" data-method="fpx" style="display:none;">
-        <input type="radio" name="pm"/><strong>iPay88 (FPX, e-Wallet...)</strong>
-      </div>
+
       <div style="display:flex;gap:10px;margin-top:12px">
-        <a href="cart.html" class="btn ghost">Back</a><span style="flex:1"></span><button id="payNow" class="btn primary">Pay Now</button>
+        <a href="cart.html" class="btn ghost">Back</a>
+        <span style="flex:1"></span>
+        <button id="payNow" class="btn primary">Pay Now</button>
       </div>
     </aside>
   </div>
 </main>
+
+<!-- Simulated iPay88 redirect overlay -->
+<div id="redirectOverlay" class="overlay">
+  <div class="panel">
+    <div style="display:flex;align-items:center">
+      <div class="loader"></div>
+      <div>
+        <div style="font-weight:800">Connecting to iPay88…</div>
+        <div class="muted" id="redirMsg">Please wait while we redirect you to your selected channel.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
-    const API_BASE_URL = 'https://api.lelefon-67.workers.dev/api';
-    const Store = {
-        read: (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d } catch { return d; } },
-        write: (k, v) => localStorage.setItem(k, JSON.stringify(v))
-    };
+  const API_BASE_URL = 'https://api.lelefon-67.workers.dev/api';
+  const Store = { read:(k,d)=>{ try{return JSON.parse(localStorage.getItem(k))??d}catch{return d;} }, write:(k,v)=>localStorage.setItem(k,JSON.stringify(v)) };
 
-    const user = Store.read('lf_user');
-    // Redirect to login if user is not logged in
-    if (!user) {
-        alert('Please login to continue.');
-        location.href = `login.html?r=checkout.html`;
+  // ---- Auth / navbar ----
+  const user = Store.read('lf_user');
+  if (!user) { alert('Please login to continue.'); location.href = `login.html?r=checkout.html`; }
+  const cart = Store.read('lf_cart', []);
+  const pending = Store.read('lf_pending', []);
+  const mode = new URLSearchParams(location.search).get('mode'); // 'cart' or 'pending'
+  const items = (mode === 'pending') ? pending : cart;
+
+  const summaryEl = document.getElementById('summary');
+  const payableEl = document.getElementById('payable');
+  const balanceEl = document.getElementById('bal');
+  const walletPillAmt = document.getElementById('walletAmt');
+  const cartCount = document.getElementById('cartCount');
+
+  const total = items.reduce((sum, item)=> sum + (item.price * item.qty), 0);
+
+  function refreshNavbarBasics(){
+    document.getElementById('authArea').innerHTML = `<span class="pill">Hi, ${user.email}</span>`;
+    cartCount.textContent = cart.reduce((s,i)=>s+(i.qty||1),0);
+  }
+
+  async function loadWallet() {
+    try {
+      const res = await fetch(`${API_BASE_URL}/wallet?email=${user.email}`);
+      const data = await res.json();
+      balanceEl.textContent = data.balance.toFixed(2) + ' MYR';
+      walletPillAmt.textContent = data.balance.toFixed(2);
+    } catch (e) {
+      balanceEl.textContent = 'Error';
     }
+  }
 
-    // Determine items from cart or a direct "Buy Now"
-    const mode = new URLSearchParams(location.search).get('mode');
-    const items = (mode === 'pending') ? Store.read('lf_pending', []) : Store.read('lf_cart', []);
-    
-    const summaryEl = document.getElementById('summary');
-    const payableEl = document.getElementById('payable');
-    const balanceEl = document.getElementById('bal');
+  // Render summary
+  summaryEl.innerHTML = items.map(i => `
+    <div class="sum-row">
+      <div>
+        <strong>${i.gameName}</strong> — ${i.pkgLabel} ${i.uid ? `• UID: ${i.uid}`: ''}
+        <div class="muted">Qty: ${i.qty}</div>
+      </div>
+      <div><strong>${(i.price * i.qty).toFixed(2)} MYR</strong></div>
+    </div>
+  `).join('');
+  payableEl.textContent = total.toFixed(2) + ' MYR';
 
-    const total = items.reduce((sum, item) => sum + (item.price * item.qty), 0);
-    
-    summaryEl.innerHTML = items.map(i => 
-        `<div class="sum-row">
-            <div><strong>${i.gameName}</strong> — ${i.pkgLabel} ${i.uid ? `• UID: ${i.uid}`: ''}<div class="muted">Qty: ${i.qty}</div></div>
-            <div><strong>${(i.price * i.qty).toFixed(2)} MYR</strong></div>
-        </div>`
-    ).join('');
-    payableEl.textContent = total.toFixed(2) + ' MYR';
+  // ---- Payment method selection ----
+  const pmWallet = document.getElementById('pmWallet');
+  const pmIpay = document.getElementById('pmIpay');
+  const ipayExtra = document.getElementById('ipayExtra');
+  let selectedMethod = 'wallet';
 
-    async function loadWallet() {
-        try {
-            const response = await fetch(`${API_BASE_URL}/wallet?email=${user.email}`);
-            const data = await response.json();
-            balanceEl.textContent = data.balance.toFixed(2) + ' MYR';
-        } catch (e) {
-            balanceEl.textContent = 'Error';
-        }
+  function selectMethod(which){
+    selectedMethod = which;
+    [pmWallet, pmIpay].forEach(el => el.classList.remove('active'));
+    if (which === 'wallet'){
+      pmWallet.classList.add('active');
+      pmWallet.querySelector('input').checked = true;
+      ipayExtra.classList.remove('show');
+    } else {
+      pmIpay.classList.add('active');
+      pmIpay.querySelector('input').checked = true;
+      ipayExtra.classList.add('show');
     }
+  }
+  pmWallet.addEventListener('click', ()=>selectMethod('wallet'));
+  pmIpay.addEventListener('click', ()=>selectMethod('ipay88'));
 
-    document.getElementById('payNow').onclick = async () => {
-        const payButton = document.getElementById('payNow');
-        payButton.disabled = true;
-        payButton.textContent = 'Processing...';
+  // ---- Payment action ----
+  const payBtn = document.getElementById('payNow');
+  const overlay = document.getElementById('redirectOverlay');
+  const redirMsg = document.getElementById('redirMsg');
 
-        try {
-            const response = await fetch(`${API_BASE_URL}/orders`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    user_email: user.email,
-                    items: items,
-                    total: total,
-                    method: 'LF Wallet' // Only wallet payment is supported in this version
-                })
-            });
-
-            const result = await response.json();
-
-            if (response.ok) {
-                alert(`Payment successful! Your Order ID is ${result.orderId}`);
-                // Clear the temporary cart/pending items from localStorage
-                if (mode === 'pending') {
-                    Store.write('lf_pending', []);
-                } else {
-                    Store.write('lf_cart', []);
-                }
-                location.href = 'transaction.html';
-            } else {
-                // Throw an error to be caught by the catch block
-                throw new Error(result.message || 'Payment failed due to an unknown error.');
-            }
-        } catch (error) {
-            alert(`Error: ${error.message}`);
-            payButton.disabled = false;
-            payButton.textContent = 'Pay Now';
-        }
-    };
-
-    // Initial Load
-    document.addEventListener('DOMContentLoaded', () => {
-        loadWallet();
+  async function createOrder(payload){
+    const response = await fetch(`${API_BASE_URL}/orders`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(payload)
     });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.message || 'Order failed.');
+    return result;
+  }
+
+  payBtn.onclick = async () => {
+    if (!items.length){ alert('Your order is empty.'); return; }
+
+    payBtn.disabled = true; payBtn.textContent = 'Processing…';
+
+    try{
+      if (selectedMethod === 'wallet'){
+        // Wallet flow (as before)
+        const result = await createOrder({
+          user_email: user.email,
+          items,
+          total,
+          method: 'LF Wallet'
+        });
+
+        alert(`Payment successful! Your Order ID is ${result.orderId}`);
+        if (mode === 'pending') { Store.write('lf_pending', []); } else { Store.write('lf_cart', []); }
+        location.href = 'transaction.html';
+        return;
+      }
+
+      // ---- Simulated iPay88 flow ----
+      overlay.style.display = 'flex';
+      redirMsg.textContent = 'Please wait while we redirect you to your selected channel.';
+      const channel = document.getElementById('ipayChannel').value;
+
+      // Fake “redirect time”
+      await new Promise(r => setTimeout(r, 1400));
+      redirMsg.textContent = 'Awaiting bank / wallet confirmation…';
+      await new Promise(r => setTimeout(r, 1800));
+
+      // Simulate SUCCESS return from iPay88
+      overlay.style.display = 'none';
+
+      const result = await createOrder({
+        user_email: user.email,
+        items,
+        total,
+        method: 'iPay88',
+        channel
+      });
+
+      alert(`Payment successful via iPay88! Order ID: ${result.orderId}`);
+      if (mode === 'pending') { Store.write('lf_pending', []); } else { Store.write('lf_cart', []); }
+      location.href = 'transaction.html';
+    }catch(err){
+      overlay.style.display = 'none';
+      alert(`Error: ${err.message}`);
+      payBtn.disabled = false; payBtn.textContent = 'Pay Now';
+    }
+  };
+
+  // Init
+  (function init(){
+    refreshNavbarBasics();
+    loadWallet();
+  })();
 </script>
 </body>
 </html>
