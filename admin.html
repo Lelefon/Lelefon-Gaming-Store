@@ -105,6 +105,11 @@
   </main>
 
 <script>
+/* ------------------------------------------------------------------
+   SAFETY SHIM: if some cached HTML still calls handleLogin(), neutralize it
+-------------------------------------------------------------------*/
+window.handleLogin = function(){ return false; };
+
 const API_BASE_URL = 'https://api.lelefon-67.workers.dev/api';
 let ALL_GAMES = [];
 
@@ -115,7 +120,7 @@ const authAreaEl = document.getElementById('authArea');
 const gameSelectEl = document.getElementById('gameSelect');
 const logoutAdminBtn = document.getElementById('logoutAdmin');
 
-// --- LOGIN HANDLER (Option B) ---
+// --- LOGIN HANDLER ---
 async function handleAdminLogin() {
   const email = document.getElementById('adminUser').value.trim();
   const password = document.getElementById('adminPass').value.trim();
