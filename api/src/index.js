@@ -2,10 +2,9 @@
 
 /**
  * Handles user login.
- * Assumes you have a 'users' table with columns: email, password, role.
- * WARNING: This implementation assumes you are storing passwords in plain text,
- * which is EXTREMELY INSECURE. You should always hash passwords during registration
- * and compare the hash during login.
+ * Compares a Base64 encoded password from the database.
+ * NOTE: Base64 is NOT a secure hash. This is for functionality based on the current schema.
+ * You should upgrade to a real hashing library like bcrypt in the future.
  */
 async function handleLogin(request, env) {
   const { email, password } = await request.json();
@@ -14,8 +13,8 @@ async function handleLogin(request, env) {
     return Response.json({ message: 'Email and password are required.' }, { status: 400 });
   }
 
-  // Find the user in the D1 database
-  const user = await env.DB.prepare('SELECT email, password, role FROM users WHERE email = ?')
+  // CORRECTED: Select the 'password_hash' column to match your schema.
+  const user = await env.DB.prepare('SELECT email, password_hash, role FROM users WHERE email = ?')
     .bind(email)
     .first();
 
@@ -23,13 +22,16 @@ async function handleLogin(request, env) {
     return Response.json({ message: 'Invalid admin credentials.' }, { status: 401 });
   }
 
-  // Insecure: Direct password comparison.
-  // TODO: Replace this with a proper hash comparison.
-  if (user.password !== password) {
+  // In your schema, 'YWRtaW4xMjM=' is the Base64 encoding of 'admin123'.
+  // We must encode the submitted password in the same way to compare it.
+  const submittedPasswordEncoded = btoa(password);
+
+  // CORRECTED: Compare the encoded submitted password with the user.password_hash from the DB.
+  if (user.password_hash !== submittedPasswordEncoded) {
     return Response.json({ message: 'Invalid admin credentials.' }, { status: 401 });
   }
 
-  // Check if the user has the 'admin' role for this login form
+  // Check if the user has the 'admin' role
   if (user.role !== 'admin') {
     return Response.json({ message: 'Access denied. Not an administrator.' }, { status: 403 });
   }
@@ -37,6 +39,7 @@ async function handleLogin(request, env) {
   // Login successful
   return Response.json({ success: true, role: user.role });
 }
+
 
 // --- Placeholder functions for other routes to prevent crashes ---
 
