@@ -1,23 +1,39 @@
+// List of all domains that are allowed to access this API
+const ALLOWED_ORIGINS = [
+  'https://lelefon.gaming.com',
+  'https://www.lelefon.gaming.com',
+  'https://lelefon-gaming-store.pages.dev' // Your Pages deployment URL
+];
+
+/**
+ * A function that returns the correct CORS headers based on the request's origin.
+ */
+function getCorsHeaders(request) {
+  const origin = request.headers.get('Origin');
+  const headers = {
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+  };
+
+  if (origin && ALLOWED_ORIGINS.includes(origin)) {
+    headers['Access-Control-Allow-Origin'] = origin;
+  }
+  
+  return headers;
+}
+
 export default {
   async fetch(request, env) {
-    // Define the CORS headers that will be attached to every response.
-    const corsHeaders = {
-      'Access-Control-Allow-Origin': 'https://lelefon.gaming.com',
-      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
-      'Access-Control-Allow-Credentials': 'true' // Sometimes needed, good to have.
-    };
-
-    // Handle the special CORS preflight "OPTIONS" request.
+    // Handle CORS preflight requests
     if (request.method === 'OPTIONS') {
-      return new Response(null, { headers: corsHeaders });
+      return new Response(null, { headers: getCorsHeaders(request) });
     }
 
     const url = new URL(request.url);
     let response;
 
     try {
-      // --- ALL YOUR API LOGIC GOES HERE (No changes needed) ---
+      // --- ALL YOUR API LOGIC IS HERE (No changes needed) ---
       if (url.pathname === '/api/register' && request.method === 'POST') {
         response = await handleRegister(request, env);
       } else if (url.pathname === '/api/login' && request.method === 'POST') {
@@ -76,8 +92,9 @@ export default {
       response = Response.json({ success: false, message: e.message }, { status: 500 });
     }
 
-    // Create a new response with the original body and status, but add the CORS headers.
+    // Create a new response and attach the correct CORS headers.
     const finalResponse = new Response(response.body, response);
+    const corsHeaders = getCorsHeaders(request);
     for (const [key, value] of Object.entries(corsHeaders)) {
         finalResponse.headers.set(key, value);
     }
@@ -86,8 +103,7 @@ export default {
   },
 };
 
-// --- Helper functions (These do not need to change) ---
-
+// --- Helper functions (No changes needed below this line) ---
 async function handleRegister(req, env) {
   const { email, password } = await req.json();
   if (!email || !password) throw new Error('Missing data');
@@ -102,7 +118,6 @@ async function handleRegister(req, env) {
       throw e;
   }
 }
-
 async function handleLogin(req, env) {
   const { email, password } = await req.json();
   const user = await env.DB.prepare('SELECT * FROM users WHERE email = ?').bind(email).first();
@@ -111,22 +126,18 @@ async function handleLogin(req, env) {
   }
   return Response.json({ success: false, message: 'Invalid credentials' }, { status: 401 });
 }
-
 async function handleTopup(req, env) {
     const { email, amount } = await req.json();
     await env.DB.prepare('UPDATE wallets SET balance = balance + ? WHERE user_email = ?').bind(amount, email).run();
     return Response.json({ success: true });
 }
-
 async function handleCreateOrder(req, env) {
     const { user_email, items, total, method } = await req.json();
-    
     if (method === 'LF Wallet') {
         const wallet = await env.DB.prepare('SELECT balance FROM wallets WHERE user_email = ?').bind(user_email).first();
         if (!wallet || wallet.balance < total) return Response.json({ success: false, message: 'Insufficient balance' }, { status: 400 });
         await env.DB.prepare('UPDATE wallets SET balance = balance - ? WHERE user_email = ?').bind(total, user_email).run();
     }
-
     const orderId = 'LF' + Date.now().toString(36).toUpperCase();
     const batch = [
         env.DB.prepare('INSERT INTO orders (id, user_email, total, payment_method) VALUES (?, ?, ?, ?)').bind(orderId, user_email, total, method)
