@@ -40,26 +40,26 @@
   </header>
 
   <main class="wrap">
-    <!-- Admin Login Form -->
-    <div id="adminLogin">
-      <div class="card">
-        <div class="title">Admin Login</div>
-        <form onsubmit="handleAdminLogin(event)">
-          <div class="form-group">
-            <label>Email</label>
-            <input id="adminUser" type="email" placeholder="admin@email.com" required>
-          </div>
-          <div class="form-group">
-            <label>Password</label>
-            <input id="adminPass" type="password" placeholder="••••••••" required>
-          </div>
-          <div class="btn-row">
-            <!-- The button type is changed to "submit" to work with the form -->
-            <button id="doAdminLogin" type="submit" class="btn primary">Login</button>
-          </div>
-        </form>
+<!-- Admin Login Form -->
+<div id="adminLogin">
+  <div class="card">
+    <div class="title">Admin Login</div>
+    <!-- This form has NO onsubmit attribute. We will attach the event in JavaScript. -->
+    <form>
+      <div class="form-group">
+        <label>Email</label>
+        <input id="adminUser" type="email" placeholder="admin@email.com" required>
       </div>
-    </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input id="adminPass" type="password" placeholder="••••••••" required>
+      </div>
+      <div class="btn-row">
+        <button id="doAdminLogin" type="submit" class="btn primary">Login</button>
+      </div>
+    </form>
+  </div>
+</div>
 
     <!-- Admin Content Panel -->
     <div id="adminContent" class="hidden">

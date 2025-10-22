@@ -1,3 +1,64 @@
+// --- Handler Functions ---
+
+/**
+ * Handles user login.
+ * Assumes you have a 'users' table with columns: email, password, role.
+ * WARNING: This implementation assumes you are storing passwords in plain text,
+ * which is EXTREMELY INSECURE. You should always hash passwords during registration
+ * and compare the hash during login.
+ */
+async function handleLogin(request, env) {
+  const { email, password } = await request.json();
+
+  if (!email || !password) {
+    return Response.json({ message: 'Email and password are required.' }, { status: 400 });
+  }
+
+  // Find the user in the D1 database
+  const user = await env.DB.prepare('SELECT email, password, role FROM users WHERE email = ?')
+    .bind(email)
+    .first();
+
+  if (!user) {
+    return Response.json({ message: 'Invalid admin credentials.' }, { status: 401 });
+  }
+
+  // Insecure: Direct password comparison.
+  // TODO: Replace this with a proper hash comparison.
+  if (user.password !== password) {
+    return Response.json({ message: 'Invalid admin credentials.' }, { status: 401 });
+  }
+
+  // Check if the user has the 'admin' role for this login form
+  if (user.role !== 'admin') {
+    return Response.json({ message: 'Access denied. Not an administrator.' }, { status: 403 });
+  }
+
+  // Login successful
+  return Response.json({ success: true, role: user.role });
+}
+
+// --- Placeholder functions for other routes to prevent crashes ---
+
+async function handleRegister(request, env) {
+  // TODO: Implement user registration logic here.
+  // Remember to HASH the password before storing it in the database.
+  return Response.json({ message: 'Registration endpoint not implemented.' }, { status: 501 });
+}
+
+async function handleTopup(request, env) {
+  // TODO: Implement wallet top-up logic here.
+  return Response.json({ message: 'Top-up endpoint not implemented.' }, { status: 501 });
+}
+
+async function handleCreateOrder(request, env) {
+  // TODO: Implement order creation logic here.
+  return Response.json({ message: 'Order creation endpoint not implemented.' }, { status: 501 });
+}
+
+
+// --- Main Fetch Handler ---
+
 export default {
   async fetch(request, env) {
     // allow your front-end hosts
@@ -5,6 +66,9 @@ export default {
       'https://lelefongaming.com',
       'https://www.lelefongaming.com',
       'https://lelefon-gaming-store.pages.dev',
+      // For local development, you might add:
+      // 'http://localhost:3000',
+      // 'http://127.0.0.1:5500' // Or whatever your local server port is
     ]);
 
     const origin = request.headers.get('Origin') || '';
@@ -15,12 +79,11 @@ export default {
       'Vary': 'Origin',
       'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-      // only keep this if you actually use cookies/session/credentials
       'Access-Control-Allow-Credentials': 'true',
       'Access-Control-Max-Age': '600',
     });
 
-    // Preflight
+    // Handle Preflight OPTIONS requests
     if (request.method === 'OPTIONS') {
       return new Response(null, {
         status: 204,
@@ -32,26 +95,32 @@ export default {
     let response;
 
     try {
-      // === your existing routes ===
+      // --- API Routing ---
       if (url.pathname === '/api/register' && request.method === 'POST') {
         response = await handleRegister(request, env);
       } else if (url.pathname === '/api/login' && request.method === 'POST') {
         response = await handleLogin(request, env);
       } else if (url.pathname === '/api/games' && request.method === 'GET') {
-        const games = await env.DB.prepare('SELECT * FROM games').all();
-        response = Response.json(games.results);
+        const { results } = await env.DB.prepare('SELECT * FROM games').all();
+        response = Response.json(results);
       } else if (url.pathname === '/api/regions' && request.method === 'GET') {
         const gameId = url.searchParams.get('gameId');
-        const regions = await env.DB.prepare('SELECT * FROM regions WHERE game_id = ?').bind(gameId).all();
-        response = Response.json(regions.results);
+        const { results } = await env.DB.prepare('SELECT * FROM regions WHERE game_id = ?').bind(gameId).all();
+        response = Response.json(results);
       } else if (url.pathname === '/api/packages' && request.method === 'GET') {
         const gameId = url.searchParams.get('gameId');
         const regionKey = url.searchParams.get('regionKey');
         let query = 'SELECT * FROM packages WHERE game_id = ?';
         let params = [gameId];
-        if (regionKey && regionKey !== 'null') { query += ' AND region_key = ?'; params.push(regionKey); }
-        const pkgs = await env.DB.prepare(query).bind(...params).all();
-        response = Response.json(pkgs.results);
+        if (regionKey && regionKey !== 'null' && regionKey !== 'undefined') {
+          query += ' AND region_key = ?';
+          params.push(regionKey);
+        } else {
+          // Handle cases where a game is not regionable
+          query += ' AND (region_key IS NULL OR region_key = "")';
+        }
+        const { results } = await env.DB.prepare(query).bind(...params).all();
+        response = Response.json(results);
       } else if (url.pathname === '/api/wallet' && request.method === 'GET') {
         const email = url.searchParams.get('email');
         const wallet = await env.DB.prepare('SELECT balance FROM wallets WHERE user_email = ?').bind(email).first();
@@ -62,8 +131,8 @@ export default {
         response = await handleCreateOrder(request, env);
       } else if (url.pathname === '/api/orders' && request.method === 'GET') {
         const email = url.searchParams.get('email');
-        const orders = await env.DB.prepare('SELECT * FROM orders WHERE user_email = ? ORDER BY created_at DESC').bind(email).all();
-        response = Response.json(orders.results);
+        const { results } = await env.DB.prepare('SELECT * FROM orders WHERE user_email = ? ORDER BY created_at DESC').bind(email).all();
+        response = Response.json(results);
       } else if (url.pathname === '/api/admin/game' && request.method === 'POST') {
         const data = await request.json();
         await env.DB.prepare('INSERT OR REPLACE INTO games (id, name, image_url, category, regionable, uid_required) VALUES (?, ?, ?, ?, ?, ?)')
@@ -75,7 +144,7 @@ export default {
         response = Response.json({ success: true });
       } else if (url.pathname === '/api/admin/package' && request.method === 'POST') {
         const data = await request.json();
-        const id = data.game_id + '-' + Date.now().toString(36);
+        const id = `${data.game_id}-${data.label.replace(/\s+/g, '-')}-${Date.now().toString(36)}`;
         await env.DB.prepare('INSERT INTO packages (id, game_id, region_key, label, price) VALUES (?, ?, ?, ?, ?)').bind(id, data.game_id, data.region_key, data.label, data.price).run();
         response = Response.json({ success: true });
       } else if (url.pathname === '/api/admin/package' && request.method === 'DELETE') {
@@ -87,20 +156,25 @@ export default {
       }
     } catch (e) {
       console.error(e);
+      // For better debugging, return the actual error message in development
       response = Response.json({ success: false, message: e.message }, { status: 500 });
     }
 
-    // attach CORS only when allowed
+    // Attach CORS headers to the final response
     if (isAllowed) {
       const headers = new Headers(response.headers);
-      const ch = baseCors(origin);
-      for (const [k, v] of Object.entries(ch)) headers.set(k, v);
-      return new Response(await response.arrayBuffer(), {
+      const corsHeaders = baseCors(origin);
+      for (const [key, value] of Object.entries(corsHeaders)) {
+        headers.set(key, value);
+      }
+      return new Response(response.body, {
         status: response.status,
         statusText: response.statusText,
         headers,
       });
     }
+    
+    // If origin is not allowed, return the original response without CORS headers
     return response;
   }
 };
