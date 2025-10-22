@@ -1,15 +1,37 @@
+// List of domains that are allowed to access the API
+const ALLOWED_ORIGINS = [
+  'https://lelefon.gaming.com',
+  'https://www.lelefon.gaming.com'
+];
+
+/**
+ * A function to handle CORS headers. It checks if the request's origin
+ * is in our allowed list and returns the appropriate headers.
+ */
+function handleCors(request) {
+  const origin = request.headers.get('Origin');
+  const headers = {
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+  };
+
+  if (origin && ALLOWED_ORIGINS.includes(origin)) {
+    headers['Access-Control-Allow-Origin'] = origin;
+  }
+  
+  return headers;
+}
+
 export default {
   async fetch(request, env) {
+    // Handle CORS preflight requests first
+    if (request.method === 'OPTIONS') {
+      return new Response(null, { headers: handleCors(request) });
+    }
+
     const url = new URL(request.url);
-    const corsHeaders = {
-      'Access-Control-Allow-Origin': 'https://lelefon.gaming.com', // <-- THIS LINE IS UPDATED
-      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
-    };
-
-    if (request.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
-
     let response;
+
     try {
       // --- AUTH ---
       if (url.pathname === '/api/register' && request.method === 'POST') {
@@ -45,7 +67,6 @@ export default {
         response = await handleCreateOrder(request, env);
       } else if (url.pathname === '/api/orders' && request.method === 'GET') {
          const email = url.searchParams.get('email');
-         // For simplicity, just fetching main order details here. specialized endpoint needed for full details if many items.
          const orders = await env.DB.prepare('SELECT * FROM orders WHERE user_email = ? ORDER BY created_at DESC').bind(email).all();
          response = Response.json(orders.results);
       
@@ -77,11 +98,19 @@ export default {
       response = Response.json({ success: false, message: e.message }, { status: 500 });
     }
 
-    const newHeaders = new Headers(response.headers);
-    Object.entries(corsHeaders).forEach(([k, v]) => newHeaders.set(k, v));
-    return new Response(response.body, { status: response.status, headers: newHeaders });
+    // Attach CORS headers to the final response
+    const finalHeaders = new Headers(response.headers);
+    const corsHeaders = handleCors(request);
+    for (const [key, value] of Object.entries(corsHeaders)) {
+      finalHeaders.set(key, value);
+    }
+
+    return new Response(response.body, { status: response.status, headers: finalHeaders });
   },
 };
+
+// --- Your async helper functions (handleRegister, handleLogin, etc.) go here ---
+// --- NO CHANGES ARE NEEDED FOR THEM ---
 
 async function handleRegister(req, env) {
   const { email, password } = await req.json();
