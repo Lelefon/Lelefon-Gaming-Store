@@ -106,25 +106,33 @@
 
 <script>
 /* ------------------------------------------------------------------
-   SAFETY SHIM: if some cached HTML still calls handleLogin(), neutralize it
+   SHIM: if cached HTML calls handleLogin() inline, route it here.
+   This makes both the inline call AND the new JS listener work.
 -------------------------------------------------------------------*/
-window.handleLogin = function(){ return false; };
+function handleAdminLoginSetupShim(fn) {
+  // expose a global so any inline onsubmit/onclick=handleLogin() will work
+  window.handleLogin = function (ev) {
+    if (ev && typeof ev.preventDefault === 'function') ev.preventDefault();
+    fn();                 // call the real handler
+    return false;         // prevent default form submit if any
+  };
+}
 
 const API_BASE_URL = 'https://api.lelefon-67.workers.dev/api';
 let ALL_GAMES = [];
 
 // --- DOM Elements ---
-const adminLoginEl = document.getElementById('adminLogin');
-const adminContentEl = document.getElementById('adminContent');
-const authAreaEl = document.getElementById('authArea');
-const gameSelectEl = document.getElementById('gameSelect');
-const logoutAdminBtn = document.getElementById('logoutAdmin');
+const adminLoginEl  = document.getElementById('adminLogin');
+const adminContentEl= document.getElementById('adminContent');
+const authAreaEl    = document.getElementById('authArea');
+const gameSelectEl  = document.getElementById('gameSelect');
+const logoutAdminBtn= document.getElementById('logoutAdmin');
 
-// --- LOGIN HANDLER ---
+// --- REAL LOGIN HANDLER ---
 async function handleAdminLogin() {
-  const email = document.getElementById('adminUser').value.trim();
+  const email    = document.getElementById('adminUser').value.trim();
   const password = document.getElementById('adminPass').value.trim();
-  if (!email || !password) return alert('Please fill in both fields.');
+  if (!email || !password) { alert('Please fill in both fields.'); return; }
 
   try {
     const response = await fetch(`${API_BASE_URL}/login`, {
@@ -141,17 +149,21 @@ async function handleAdminLogin() {
       alert(result.message || 'Invalid admin credentials.');
     }
   } catch (err) {
+    console.error(err);
     alert('Login failed. Please check server connection.');
   }
 }
-document.getElementById('doAdminLogin')
-  .addEventListener('click', handleAdminLogin);
 
+// Wire the click (modern way) AND expose the shim for any legacy inline call
+document.getElementById('doAdminLogin').addEventListener('click', handleAdminLogin);
+handleAdminLoginSetupShim(handleAdminLogin);
+
+// --- LOGOUT ---
 logoutAdminBtn.addEventListener('click', () => {
   sessionStorage.removeItem('isAdmin');
   adminLoginEl.classList.remove('hidden');
   adminContentEl.classList.add('hidden');
-  authAreaEl.innerHTML = '';
+  authAreaEl.textContent = '';
 });
 
 // --- SHOW ADMIN PANEL ---
@@ -163,9 +175,7 @@ function showAdminPanel() {
 }
 
 // --- INITIAL DATA LOAD ---
-async function loadInitialData() {
-  await loadGames();
-}
+async function loadInitialData() { await loadGames(); }
 
 // --- LOAD GAMES ---
 async function loadGames() {
@@ -190,7 +200,7 @@ document.getElementById('saveGameBtn').addEventListener('click', async () => {
     regionable: document.getElementById('gameRegionable').checked,
     uid_required: document.getElementById('gameUidReq').checked,
   };
-  if (!gameData.id || !gameData.name) return alert('Game ID and Name are required.');
+  if (!gameData.id || !gameData.name) { alert('Game ID and Name are required.'); return; }
 
   await fetch(`${API_BASE_URL}/admin/game`, {
     method: 'POST',
@@ -204,7 +214,7 @@ document.getElementById('saveGameBtn').addEventListener('click', async () => {
 // --- REGION & PACKAGE MANAGEMENT ---
 gameSelectEl.addEventListener('change', async (e) => {
   const gameId = e.target.value;
-  const game = ALL_GAMES.find(g => g.id === gameId);
+  const game   = ALL_GAMES.find(g => g.id === gameId);
   const regionArea = document.getElementById('regionArea');
 
   if (!game) {
@@ -236,16 +246,15 @@ async function loadRegionsForGame(gameId) {
     document.getElementById('packageList').innerHTML =
       '<p class="muted">This game has no regions yet. Add one!</p>';
   }
-  regionSelectEl.onchange = () =>
-    loadPackagesForGame(gameId, regionSelectEl.value);
+  regionSelectEl.onchange = () => loadPackagesForGame(gameId, regionSelectEl.value);
 }
 
 document.getElementById('addRegionBtn').addEventListener('click', async () => {
   const gameId = gameSelectEl.value;
-  if (!gameId) return alert('Please select a game first.');
+  if (!gameId) { alert('Please select a game first.'); return; }
   const regionKey = prompt('Enter a short Region Key (e.g., MY, GLOBAL):');
-  const regionName = prompt('Enter full Region Name (e.g., Malaysia):');
-  const flag = prompt('Enter a flag emoji (optional):');
+  const regionName= prompt('Enter full Region Name (e.g., Malaysia):');
+  const flag      = prompt('Enter a flag emoji (optional):');
   if (regionKey && regionName) {
     await fetch(`${API_BASE_URL}/admin/region`, {
       method: 'POST',
@@ -282,33 +291,11 @@ window.deletePackage = async (packageId) => {
   }
 };
 
-document.getElementById('addPackageBtn').addEventListener('click', async () => {
-  const gameId = gameSelectEl.value;
-  const game = ALL_GAMES.find(g => g.id === gameId);
-  if (!game) return alert('Please select a game.');
-
-  const regionKey = game.regionable ? document.getElementById('regionSelect').value : null;
-  const newPackage = {
-    game_id: gameId,
-    region_key: regionKey,
-    label: document.getElementById('packageName').value,
-    price: parseFloat(document.getElementById('packagePrice').value)
-  };
-  if (!newPackage.label || !newPackage.price) return alert('Package Name and Price are required.');
-
-  await fetch(`${API_BASE_URL}/admin/package`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(newPackage)
-  });
-  alert('Package added!');
-  gameSelectEl.dispatchEvent(new Event('change'));
-});
-
-// --- AUTO LOGIN IF SESSION EXISTS ---
+// --- AUTO LOGIN ---
 if (sessionStorage.getItem('isAdmin') === 'true') {
   showAdminPanel();
 }
 </script>
+
 </body>
 </html>
