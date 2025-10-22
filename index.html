@@ -18,136 +18,122 @@
     @media (min-width: 900px) {.game-grid { grid-template-columns: repeat(5, 1fr); }}
 
     .game-card {
-      position: relative;
-      border-radius: 14px;
-      overflow: hidden;
       cursor: pointer;
-      transition: transform .2s ease, box-shadow .2s ease;
     }
-    .game-card:hover { transform: translateY(-4px); box-shadow: 0 10px 22px rgba(0,0,0,.35); }
-    .game-card img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
-      transition: filter .25s ease;
+    .game-thumb {
+      position: relative;
+      border-radius: 16px;
+      overflow: hidden;
+      aspect-ratio: 1 / 1;
+      background: #f4f4f5;
+      box-shadow: 0 6px 18px rgba(0,0,0,.06);
+      transition: transform .18s ease, box-shadow .18s ease;
     }
-    .game-card:hover img { filter: brightness(1.1); }
-
-    .game-overlay {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      height: 40%;
-      background: linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.65) 100%);
-      display: flex;
-      align-items: flex-end;
-      justify-content: center;
-      padding: 10px;
-      opacity: 0;
-      transition: opacity .2s ease;
+    .game-card:hover .game-thumb {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 24px rgba(0,0,0,.12);
     }
-    .game-card:hover .game-overlay { opacity: 1; }
-    .game-overlay span {
-      color: #fff;
-      font-weight: 700;
-      font-size: 1rem;
-      text-shadow: 0 1px 4px rgba(0,0,0,.9);
+    .game-thumb img {
+      width: 100%; height: 100%; object-fit: cover; display: block;
+    }
+    .game-name {
+      margin-top: 10px;
+      text-align: center;
+      font-weight: 800;
+      color: #111827;
     }
 
-    /* ---------- Modal ---------- */
+    /* ---------- Filter ---------- */
+    .filter-bar { display:flex; gap:8px; margin:10px 0 18px; }
+    .filter-btn { border:1px solid var(--border); background:#fff; border-radius:20px; padding:6px 12px; cursor:pointer; font-weight:700; }
+    .filter-btn.active { background:var(--brand); color:#fff; border-color:var(--brand); }
+
+    /* ---------- Modal (Light) ---------- */
     .modal.hidden { display:none; }
     .modal { position:fixed; inset:0; z-index:1000; }
     .modal-backdrop {
       position:absolute; inset:0;
       background:rgba(0,0,0,.45);
-      backdrop-filter: blur(4px);
+      backdrop-filter: blur(2px);
       animation: fadeIn .18s ease-out;
     }
     @keyframes fadeIn { from{opacity:0} to{opacity:1} }
 
     .modal-dialog {
       position:relative;
-      background: linear-gradient(180deg, #0d0d0f 0%, #1a1a1d 100%);
-      color:#fff;
-      width:min(980px,92vw);
+      background:#ffffff;
+      color:#0f172a;
+      width:min(1020px,92vw);
       margin: 40px auto;
       border-radius:20px;
-      box-shadow:0 18px 40px rgba(0,0,0,.55);
-      padding:28px;
+      box-shadow:0 20px 60px rgba(0,0,0,.35);
+      padding:26px;
       animation: pop .18s ease-out;
     }
     @keyframes pop { from{ transform: translateY(6px); opacity:.95 } to{ transform: translateY(0); opacity:1 }}
 
     .modal-header { display:flex; align-items:center; gap:12px; }
-    .modal-header h3 { font-size:1.7rem; font-weight:800; letter-spacing:.3px; margin:0; }
+    .modal-header h3 { font-size:1.8rem; font-weight:900; letter-spacing:.2px; margin:0; }
 
     .modal-close {
-      position:absolute; top:18px; right:18px;
-      width:38px;height:38px;border-radius:999px;
-      background:rgba(255,255,255,.08); color:#fff; border:none;
+      position:absolute; top:14px; right:14px;
+      width:40px;height:40px;border-radius:12px;
+      background:#f3f4f6; color:#111827; border:none;
       font-size:22px; cursor:pointer; transition: background .2s ease;
+      box-shadow: inset 0 -1px 0 rgba(0,0,0,.05);
     }
-    .modal-close:hover { background: rgba(255,255,255,.18); }
+    .modal-close:hover { background: #e5e7eb; }
 
     .pill-muted {
       font-size:.78rem; font-weight:800; letter-spacing:.3px;
-      padding:6px 10px; border-radius:999px; background:#1f2937; color:#cbd5e1;
+      padding:6px 10px; border-radius:999px; background:#e5e7eb; color:#0f172a;
     }
 
     .region-grid {
-      display:grid; gap:24px; margin-top:20px;
-      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      display:grid; gap:22px; margin-top:18px;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
     }
 
-    /* ---------- Region Card ---------- */
-    .region-card {
-      position:relative; border-radius:16px; overflow:hidden;
-      background:#111; cursor:pointer;
-      transition: transform .2s ease, box-shadow .2s ease;
+    /* ---------- Region Card (Light) ---------- */
+    .region-card { cursor:pointer; }
+    .region-thumb {
+      position:relative;
+      border-radius:16px; overflow:hidden;
+      background:#f4f4f5;
+      aspect-ratio: 16 / 10;
+      box-shadow: 0 6px 18px rgba(0,0,0,.06);
+      transition: transform .18s ease, box-shadow .18s ease;
     }
-    .region-card:hover { transform: translateY(-4px); box-shadow:0 10px 22px rgba(0,0,0,.45); }
-
-    .region-card .thumb { position:relative; aspect-ratio: 4/3; }
-    .region-card img {
-      width:100%; height:100%; object-fit:cover; display:block;
-      border-radius:16px; transition: filter .25s ease;
+    .region-card:hover .region-thumb {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 24px rgba(0,0,0,.12);
     }
-    .region-card:hover img { filter: brightness(1.08); }
+    .region-thumb img { width:100%; height:100%; object-fit:cover; display:block; }
 
-    .region-overlay {
-      position:absolute; inset:0;
-      background:linear-gradient(180deg, rgba(0,0,0,.12) 0%, rgba(0,0,0,.72) 100%);
-      display:flex; flex-direction:column; justify-content:flex-end;
-      padding:10px 12px;
-    }
-
-    .region-flag {
+    .flag-badge {
       position:absolute; top:10px; right:10px;
       width:36px; height:36px; border-radius:50%;
-      background:#fff; color:#000; display:flex; align-items:center; justify-content:center;
-      font-size:18px; font-weight:800; box-shadow:0 2px 8px rgba(0,0,0,.4);
+      background:#ffffff; color:#111827; display:flex; align-items:center; justify-content:center;
+      font-size:14px; font-weight:900; border:1px solid rgba(0,0,0,.06);
+      box-shadow:0 2px 8px rgba(0,0,0,.10);
       user-select:none;
     }
-
-    .region-chip {
-      position:absolute; bottom:10px; left:10px;
-      font-size:.75rem; font-weight:800; letter-spacing:.3px;
-      padding:6px 12px; border-radius:6px; color:#fff;
-      box-shadow: 0 2px 6px rgba(0,0,0,.35);
+    .chip {
+      position:absolute; left:10px; bottom:10px;
+      padding:6px 12px; border-radius:8px; font-size:.75rem; font-weight:900; letter-spacing:.3px;
+      color:#fff; box-shadow: 0 2px 6px rgba(0,0,0,.18);
     }
-    .chip-uid { background:#16a34a; }
-    .chip-code{ background:#ea8a00; }
+    .chip.uid  { background:#16a34a; }
+    .chip.code { background:#ea8a00; }
 
-    .region-label {
-      color:#fff; font-weight:800; font-size:.98rem; margin-top:6px; padding-left:4px;
-      text-shadow:0 1px 3px rgba(0,0,0,.8);
+    .region-name {
+      margin-top:8px;
+      font-weight:800;
+      color:#111827;
     }
 
-    .filter-bar { display:flex; gap:8px; margin:10px 0 18px; }
-    .filter-btn { border:1px solid var(--border); background:#fff; border-radius:20px; padding:6px 12px; cursor:pointer; font-weight:700; }
-    .filter-btn.active { background:var(--brand); color:#fff; border-color:var(--brand); }
+    /* Page hero */
+    .hero h2 { margin-bottom: 8px; }
   </style>
 </head>
 
@@ -198,7 +184,7 @@
 <div id="regionModal" class="modal hidden">
   <div class="modal-backdrop" onclick="closeModal()"></div>
   <div class="modal-dialog">
-    <button class="modal-close" onclick="closeModal()">×</button>
+    <button class="modal-close" onclick="closeModal()">✕</button>
     <div class="modal-header">
       <h3>Select Server/Region</h3>
       <span id="modalGameChip" class="pill-muted"></span>
@@ -236,8 +222,10 @@ async function loadGames() {
     if (!games.length) return grid.innerHTML = '<p class="muted">No games added yet.</p>';
     grid.innerHTML = games.map(g => `
       <div class="game-card" data-category="${g.category}" onclick='handleGameClick(${JSON.stringify(g)})'>
-        <img src="${g.image_url}" alt="${g.name}" onerror="this.src='images/lelefonlogo2.png'">
-        <div class="game-overlay"><span>${g.name}</span></div>
+        <div class="game-thumb">
+          <img src="${g.image_url}" alt="${g.name}" onerror="this.src='images/lelefonlogo2.png'">
+        </div>
+        <div class="game-name">${g.name}</div>
       </div>`).join('');
   } catch {
     grid.innerHTML = '<p class="muted">Failed to load games.</p>';
@@ -268,14 +256,12 @@ function renderRegionGrid(game, regions) {
   if (!regions.length) return grid.innerHTML = '<p class="muted">No regions yet.</p>';
   grid.innerHTML = regions.map(r => `
     <div class="region-card" onclick="navigateToProduct('${game.id}','${encodeURIComponent(game.name)}','${r.region_key}',${game.uid_required},'${game.category}')">
-      <div class="thumb">
+      <div class="region-thumb">
         <img src="${game.image_url}" alt="${game.name}">
-        <div class="region-overlay">
-          <div class="region-chip ${isCode ? 'chip-code' : 'chip-uid'}">${isCode ? 'CODE' : 'UID'}</div>
-          <div class="region-label">${game.name} (${r.name})</div>
-        </div>
-        <div class="region-flag">${r.flag || '🌐'}</div>
+        <div class="flag-badge">${r.flag || '🌐'}</div>
+        <div class="chip ${isCode ? 'code' : 'uid'}">${isCode ? 'CODE' : 'UID'}</div>
       </div>
+      <div class="region-name">${game.name} (${r.name})</div>
     </div>`).join('');
 }
 
