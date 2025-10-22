@@ -43,8 +43,13 @@
     </section>
     <aside class="card">
       <h3>Payment Methods</h3>
-      <div id="pmWallet" class="pay-choice" data-method="wallet"><input type="radio" name="pm"/><strong>LF Account</strong> — Balance <strong id="bal">0.00 MYR</strong></div>
-      <div id="pmFPX" class="pay-choice" data-method="fpx"><input type="radio" name="pm"/><strong>iPay88 (FPX, e-Wallet...)</strong></div>
+      <div id="pmWallet" class="pay-choice active" data-method="wallet">
+        <input type="radio" name="pm" checked/><strong>LF Wallet</strong> — Balance <strong id="bal">0.00 MYR</strong>
+      </div>
+      <!-- For simplicity, other payment methods are disabled in this version -->
+      <div id="pmFPX" class="pay-choice" data-method="fpx" style="display:none;">
+        <input type="radio" name="pm"/><strong>iPay88 (FPX, e-Wallet...)</strong>
+      </div>
       <div style="display:flex;gap:10px;margin-top:12px">
         <a href="cart.html" class="btn ghost">Back</a><span style="flex:1"></span><button id="payNow" class="btn primary">Pay Now</button>
       </div>
@@ -52,134 +57,90 @@
   </div>
 </main>
 <script>
-const Store={read:(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}},write:(k,v)=>localStorage.setItem(k,JSON.stringify(v))};
-const state={user:Store.read('lf_user',null),wallets:Store.read('lf_wallets',{}),cart:Store.read('lf_cart',[]),pending:Store.read('lf_pending',null),orders:Store.read('lf_orders',[]),walletLogs:Store.read('lf_wallet_logs',[])};
+    const API_BASE_URL = 'http://localhost:8787/api';
+    const Store = {
+        read: (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d } catch { return d; } },
+        write: (k, v) => localStorage.setItem(k, JSON.stringify(v))
+    };
 
-function save(){
-    Store.write('lf_wallets',state.wallets);
-    Store.write('lf_cart',state.cart);
-    Store.write('lf_orders',state.orders);
-    Store.write('lf_wallet_logs',state.walletLogs);
-    Store.write('lf_pending',state.pending);
-    refresh();
-}
-
-function refresh(){
-    const userBalance = state.user ? (state.wallets[state.user.email] || 0) : 0;
-    document.getElementById('walletAmt').textContent = userBalance.toFixed(2);
-    document.getElementById('cartCount').textContent=state.cart.reduce((s,i)=>s+(i.qty||1),0);
-    if(state.user)document.getElementById('authArea').innerHTML=`<span class="pill">Hi, ${state.user.email}</span>`;
-}
-refresh();
-
-const mode=new URLSearchParams(location.search).get('mode')||'cart';
-let items = (mode==='pending' && state.pending)? state.pending.slice() : state.cart.slice();
-
-const summary=document.getElementById('summary'), payable=document.getElementById('payable'), bal=document.getElementById('bal');
-const currentUserBalance = state.user ? (state.wallets[state.user.email] || 0) : 0;
-bal.textContent = currentUserBalance.toFixed(2) + ' MYR';
-
-function total(){return items.reduce((s,i)=>s+i.price*i.qty,0)}
-function draw(){ summary.innerHTML=items.map(i=>`<div class="sum-row"><div><strong>${i.gameName}</strong> ${i.region?`(${i.region})`:''} — ${i.pkgLabel} ${i.uid?`• UID: ${i.uid}`:''}<div class="muted">Qty: ${i.qty}</div></div><div><strong>${(i.price*i.qty).toFixed(2)} MYR</strong></div></div>`).join(''); payable.textContent=total().toFixed(2)+' MYR'; }
-draw();
-
-let payMethod='wallet';
-['pmWallet','pmFPX'].forEach(id=>{
-  const el=document.getElementById(id);
-  el.onclick=()=>{ document.querySelectorAll('.pay-choice').forEach(x=>x.classList.remove('active')); el.classList.add('active'); payMethod=el.dataset.method; };
-});
-document.getElementById('pmWallet').classList.add('active');
-
-function pushOrder(orderId, method, initialStatus){
-  const now=Date.now();
-  const order={ id:orderId, user:state.user?.email||'guest', items, total:total(), method, status: initialStatus, createdAt:now, paidAt: (initialStatus === 'Processing' ? now : null) };
-  state.orders.unshift(order);
-  if(mode==='cart'){ state.cart=[]; }
-  state.pending=null;
-}
-
-document.getElementById('payNow').onclick = async () => {
-    if (!state.user) {
+    const user = Store.read('lf_user');
+    // Redirect to login if user is not logged in
+    if (!user) {
         alert('Please login to continue.');
-        location.href = 'login.html';
-        return;
+        location.href = `login.html?r=checkout.html`;
     }
 
-    const amt = total();
-    const payNowBtn = document.getElementById('payNow');
-    payNowBtn.disabled = true;
-    payNowBtn.textContent = 'Processing...';
+    // Determine items from cart or a direct "Buy Now"
+    const mode = new URLSearchParams(location.search).get('mode');
+    const items = (mode === 'pending') ? Store.read('lf_pending', []) : Store.read('lf_cart', []);
+    
+    const summaryEl = document.getElementById('summary');
+    const payableEl = document.getElementById('payable');
+    const balanceEl = document.getElementById('bal');
 
-    if (payMethod === 'wallet') {
-        const userEmail = state.user.email;
-        const userBalance = state.wallets[userEmail] || 0;
+    const total = items.reduce((sum, item) => sum + (item.price * item.qty), 0);
+    
+    summaryEl.innerHTML = items.map(i => 
+        `<div class="sum-row">
+            <div><strong>${i.gameName}</strong> — ${i.pkgLabel} ${i.uid ? `• UID: ${i.uid}`: ''}<div class="muted">Qty: ${i.qty}</div></div>
+            <div><strong>${(i.price * i.qty).toFixed(2)} MYR</strong></div>
+        </div>`
+    ).join('');
+    payableEl.textContent = total.toFixed(2) + ' MYR';
 
-        if (userBalance < amt) {
-            alert('Insufficient LF Wallet balance. Please top up.');
-            payNowBtn.disabled = false;
-            payNowBtn.textContent = 'Pay Now';
-            return;
+    async function loadWallet() {
+        try {
+            const response = await fetch(`${API_BASE_URL}/wallet?email=${user.email}`);
+            const data = await response.json();
+            balanceEl.textContent = data.balance.toFixed(2) + ' MYR';
+        } catch (e) {
+            balanceEl.textContent = 'Error';
         }
-        
-        state.wallets[userEmail] -= amt;
-        state.walletLogs.unshift({id:'WL'+Date.now().toString(36),type:'purchase',delta:-amt,createdAt:Date.now(),note:`Order purchase by ${userEmail}`});
-        
-        const orderId = 'LF' + Date.now().toString(36).toUpperCase();
-        pushOrder(orderId, 'LF Wallet', 'Processing');
-        
-        save();
-        alert('Payment successful. Order ' + orderId + ' is being processed.');
-        location.href = 'transaction.html';
-    } else {
-        const orderId = 'LF' + Date.now().toString(36).toUpperCase();
-        const orderDetails = {
-            amount: amt.toFixed(2),
-            orderId: orderId,
-            userName: state.user.email,
-            userEmail: state.user.email
-        };
+    }
+
+    document.getElementById('payNow').onclick = async () => {
+        const payButton = document.getElementById('payNow');
+        payButton.disabled = true;
+        payButton.textContent = 'Processing...';
 
         try {
-            pushOrder(orderId, 'iPay88', 'Pending');
-            save(); 
-            
-            const response = await fetch('https://lelefon-ipay88-handler.YOUR_WORKER_SUBDOMAIN.workers.dev', {
+            const response = await fetch(`${API_BASE_URL}/orders`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(orderDetails)
+                body: JSON.stringify({
+                    user_email: user.email,
+                    items: items,
+                    total: total,
+                    method: 'LF Wallet' // Only wallet payment is supported in this version
+                })
             });
 
-            if (!response.ok) { throw new Error('Payment server responded with an error.'); }
-            
-            const paymentData = await response.json();
-            
-            const form = document.createElement('form');
-            form.method = 'post';
-            form.action = paymentData.paymentUrl;
-            form.style.display = 'none';
+            const result = await response.json();
 
-            for (const key in paymentData) {
-                if (paymentData.hasOwnProperty(key) && key !== 'paymentUrl') {
-                    const input = document.createElement('input');
-                    input.type = 'hidden';
-                    input.name = key;
-                    input.value = paymentData[key];
-                    form.appendChild(input);
+            if (response.ok) {
+                alert(`Payment successful! Your Order ID is ${result.orderId}`);
+                // Clear the temporary cart/pending items from localStorage
+                if (mode === 'pending') {
+                    Store.write('lf_pending', []);
+                } else {
+                    Store.write('lf_cart', []);
                 }
+                location.href = 'transaction.html';
+            } else {
+                // Throw an error to be caught by the catch block
+                throw new Error(result.message || 'Payment failed due to an unknown error.');
             }
-            document.body.appendChild(form);
-            form.submit();
-
         } catch (error) {
-            console.error('Failed to initiate iPay88 payment:', error);
-            alert('Could not connect to the payment service. Please try again later.');
-            state.orders = state.orders.filter(o => o.id !== orderId);
-            save();
-            payNowBtn.disabled = false;
-            payNowBtn.textContent = 'Pay Now';
+            alert(`Error: ${error.message}`);
+            payButton.disabled = false;
+            payButton.textContent = 'Pay Now';
         }
-    }
-};
+    };
+
+    // Initial Load
+    document.addEventListener('DOMContentLoaded', () => {
+        loadWallet();
+    });
 </script>
 </body>
 </html>

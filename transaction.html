@@ -30,72 +30,77 @@
 </header>
 <main class="wrap">
   <h2>My Orders</h2>
-  <div id="orders"></div>
+  <div id="orders"><p class="muted">Loading your order history...</p></div>
 </main>
 <script>
-const Store={read:(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}},write:(k,v)=>localStorage.setItem(k,JSON.stringify(v))};
-const state={user:Store.read('lf_user',null),wallets:Store.read('lf_wallets',{}),cart:Store.read('lf_cart',[]),orders:Store.read('lf_orders',[])};
+    const API_BASE_URL = 'http://localhost:8787/api';
+    const Store = { read: (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d } catch { return d; } } };
+    const user = Store.read('lf_user');
 
-function save(){Store.write('lf_orders',state.orders);refresh();}
-
-function refresh(){
-    const userBalance = state.user ? (state.wallets[state.user.email] || 0) : 0;
-    document.getElementById('walletAmt').textContent = userBalance.toFixed(2);
-    document.getElementById('cartCount').textContent=state.cart.reduce((s,i)=>s+(i.qty||1),0);
-    if(state.user)document.getElementById('authArea').innerHTML=`<span class="pill">Hi, ${state.user.email}</span>`;
-}
-refresh();
-
-function draw(){
-  // --- LOGIC TO SIMULATE PAYMENT CONFIRMATION ---
-  let stateWasModified = false;
-  state.orders.forEach(order => {
-    // Only update orders for the currently logged-in user
-    if (order.user === state.user?.email && order.status === 'Pending') {
-      order.status = 'Processing';
-      order.paidAt = Date.now();
-      stateWasModified = true;
+    if (!user) {
+        alert('Please login to view your transactions.');
+        location.href = `login.html?r=transaction.html`;
     }
-  });
-  if(stateWasModified) {
-    save();
-  }
 
-  const list=document.getElementById('orders');
-  // Only show orders belonging to the logged-in user
-  const userOrders = state.orders.filter(o => o.user === state.user?.email);
-
-  if(!userOrders.length){ list.innerHTML='<div class="muted">No orders yet.</div>'; return; }
-  
-  list.innerHTML=userOrders.map(o=>{
-    const itemsHtml = o.items.map(i => {
-        let pinDisplay = '';
-        // If it's a game card and the order is completed, show the PIN
-        if (i.type === 'card' && o.status === 'Completed') {
-            if (i.pin) {
-                pinDisplay = `• PIN: <span class="pin-code">${i.pin}</span>`;
-            } else {
-                pinDisplay = `• <span class="muted">Pending PIN</span>`;
-            }
-        }
-
-        const itemDetails = `${i.gameName} ${i.region?`(${i.region})`:''} — ${i.pkgLabel} ${i.uid?`• UID: ${i.uid}`:''} <span class="muted">x${i.qty}</span> ${pinDisplay}`;
+    // --- NAVBAR ---
+    async function refreshNavbar() {
+        const cart = Store.read('lf_cart', []);
+        document.getElementById('cartCount').textContent = cart.reduce((s, i) => s + (i.qty || 1), 0);
         
-        return `<div class="sum-row">
-                    <div>${itemDetails}</div>
-                    <div>${(i.price*i.qty).toFixed(2)} MYR</div>
-                </div>`;
-    }).join('');
+        if (user) {
+            document.getElementById('authArea').innerHTML = `<span class="pill">Hi, ${user.email}</span>`;
+            try {
+                const response = await fetch(`${API_BASE_URL}/wallet?email=${user.email}`);
+                const data = await response.json();
+                document.getElementById('walletAmt').textContent = data.balance.toFixed(2) + ' MYR';
+            } catch (e) { document.getElementById('walletAmt').textContent = 'Error'; }
+        } else {
+            document.getElementById('authArea').innerHTML = `<a class="btn primary" href="login.html">Login</a>`;
+        }
+    }
 
-    return `<div class="order" data-id="${o.id}">
-      <div class="head"><div><strong>Order #${o.id}</strong> • <span class="muted">${new Date(o.createdAt).toLocaleString()}</span><div class="muted">${o.method}</div></div>
-      <div class="status status-${o.status.toLowerCase()}">${o.status}</div></div>
-      <div class="items">${itemsHtml}</div>
-      <div class="sum-row" style="font-weight:800"><div>Total</div><div>${o.total.toFixed(2)} MYR</div></div>
-    </div>`;
-  }).join('');
-}
-draw();
+    // --- ORDER HISTORY ---
+    async function loadOrders() {
+        const ordersEl = document.getElementById('orders');
+        try {
+            const response = await fetch(`${API_BASE_URL}/orders?email=${user.email}`);
+            const orders = await response.json();
+
+            if (orders.length > 0) {
+                // NOTE: For simplicity, this view doesn't show individual order items.
+                // A more advanced version would fetch items for each order.
+                ordersEl.innerHTML = orders.map(order => `
+                    <div class="order card" data-id="${order.id}">
+                      <div class="head">
+                        <div>
+                          <strong>Order #${order.id}</strong>
+                          <div class="muted">${new Date(order.created_at).toLocaleString()}</div>
+                          <div class="muted">Method: ${order.payment_method}</div>
+                        </div>
+                        <div class="status status-${order.status.toLowerCase()}">${order.status}</div>
+                      </div>
+                      <div class="items">
+                        <div class="sum-row" style="font-weight:800">
+                            <span>Total</span>
+                            <span>${order.total.toFixed(2)} MYR</span>
+                        </div>
+                      </div>
+                    </div>
+                `).join('');
+            } else {
+                ordersEl.innerHTML = '<p class="muted">You have not placed any orders yet.</p>';
+            }
+        } catch (e) {
+            console.error('Failed to load orders', e);
+            ordersEl.innerHTML = '<p class="muted">Could not load your order history. Please try again later.</p>';
+        }
+    }
+
+    // --- Initial Load ---
+    document.addEventListener('DOMContentLoaded', () => {
+        refreshNavbar();
+        loadOrders();
+    });
 </script>
 </body>
 </html>

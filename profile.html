@@ -33,13 +33,12 @@
       <h3>Account</h3>
       <div><strong>Email:</strong> <span id="email">-</span></div>
       <div style="margin-top:8px"><button id="logout" class="btn ghost">Logout</button></div>
-      <div class="muted" style="margin-top:10px">Update features (address, phone, etc.) can be added later.</div>
     </section>
 
     <section class="card">
       <h3>Top Up LF Wallet</h3>
       <div class="field"><label>Amount (MYR)</label><input id="amt" type="number" min="1" value="50"/></div>
-      <div class="field"><label>Select Bank</label>
+      <div class="field"><label>Select Bank (Simulated)</label>
         <select id="bank">
           <option>MAYBANK (M2U)</option><option>CIMB CLICKS</option><option>RHB NOW</option>
           <option>PUBLIC BANK (PBE)</option><option>HONG LEONG (HLB CONNECT)</option>
@@ -51,128 +50,104 @@
   </div>
 
   <section class="card" style="margin-top:18px">
-    <h3>Wallet Activity</h3>
-    <div id="logs"></div>
+    <h3>My Recent Orders</h3>
+    <div id="logs"><p class="muted">Loading order history...</p></div>
   </section>
 </main>
 
 <script>
-/* Storage */
-const Store={read:(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}},write:(k,v)=>localStorage.setItem(k,JSON.stringify(v))};
+    const API_BASE_URL = 'http://localhost:8787/api';
+    const user = JSON.parse(localStorage.getItem('lf_user'));
 
-/* State from central stores */
-const state={
-  user: Store.read('lf_user', null),
-  wallets: Store.read('lf_wallets', {}), // Read the central wallets object
-  cart: Store.read('lf_cart', []),
-  walletLogs: Store.read('lf_wallet_logs', [])
-};
+    // If no user is logged in, redirect to the login page immediately.
+    if (!user) {
+        alert('Please login to view your profile.');
+        location.href = `login.html?r=profile.html`;
+    }
 
-/* Elements */
-const walletAmt = document.getElementById('walletAmt');
-const cartCount = document.getElementById('cartCount');
-const authArea = document.getElementById('authArea');
-const emailEl = document.getElementById('email');
-const amtEl = document.getElementById('amt');
-const bankEl = document.getElementById('bank');
-const topupBtn = document.getElementById('topup');
+    const emailEl = document.getElementById('email');
+    const logsEl = document.getElementById('logs');
+    
+    emailEl.textContent = user.email;
 
-/* Helpers */
-function save() {
-    Store.write('lf_wallets', state.wallets); // Save the entire wallets object
-    Store.write('lf_wallet_logs', state.walletLogs);
-}
+    async function loadProfileData() {
+        try {
+            // Fetch both wallet and order data at the same time for efficiency
+            const [walletResponse, ordersResponse] = await Promise.all([
+                fetch(`${API_BASE_URL}/wallet?email=${user.email}`),
+                fetch(`${API_BASE_URL}/orders?email=${user.email}`)
+            ]);
 
-function drawNav(){
-  const userBalance = state.user ? (state.wallets[state.user.email] || 0) : 0;
-  walletAmt.textContent = userBalance.toFixed(2);
-  cartCount.textContent = state.cart.reduce((s,i) => s + (i.qty || 1), 0);
-  if(state.user){
-    authArea.innerHTML = `<span class="pill">Hi, ${state.user.email}</span>`;
-  } else {
-    authArea.innerHTML = `<a class="btn primary" href="login.html?r=profile.html">Login</a>`;
-  }
-}
+            // Handle wallet balance in the navbar
+            const walletData = await walletResponse.json();
+            const walletAmtEl = document.getElementById('walletAmt');
+            if (walletAmtEl) walletAmtEl.textContent = walletData.balance.toFixed(2) + ' MYR';
+            
+            // Handle order history
+            const orders = await ordersResponse.json();
+            if (orders.length > 0) {
+                logsEl.innerHTML = orders.map(order => `
+                    <div class="log-row">
+                        <div><strong>Order #${order.id}</strong><div class="muted">${new Date(order.created_at).toLocaleString()}</div></div>
+                        <div>-${order.total.toFixed(2)} MYR</div>
+                        <div class="status status-${order.status.toLowerCase()}">${order.status}</div>
+                    </div>
+                `).join('');
+            } else {
+                logsEl.innerHTML = '<p class="muted">You have no order history yet.</p>';
+            }
 
-function drawLogs(){
-  const wrap = document.getElementById('logs');
-  if (!state.user) {
-      wrap.innerHTML = '<div class="muted">Please log in to see your wallet activity.</div>';
-      return;
-  }
-  // Filter logs for the current user
-  const userLogs = state.walletLogs.filter(log => {
-      // Check if the log belongs to the current user
-      if (log.note) {
-          // Top-ups and purchases will have user email in the note
-          if (log.note.includes(state.user.email)) return true;
-          // Refunds are linked by finding the original order
-          if (log.type === 'refund' && log.note.includes('Order')) {
-              const orderId = log.note.split(' ')[2];
-              const originalOrder = Store.read('lf_orders', []).find(o => o.id === orderId);
-              if (originalOrder && originalOrder.user === state.user.email) return true;
-          }
-      }
-      return false;
-  });
+        } catch (error) {
+            console.error('Failed to load profile data:', error);
+            logsEl.innerHTML = '<p class="muted">Could not load your data.</p>';
+        }
+    }
+    
+    document.getElementById('topup').onclick = async () => {
+        const amount = parseFloat(document.getElementById('amt').value);
+        if (!amount || amount <= 0) {
+            return alert('Please enter a valid amount to top up.');
+        }
 
-  if(!userLogs.length){ wrap.innerHTML = '<div class="muted">No wallet activity yet.</div>'; return; }
-  
-  wrap.innerHTML = userLogs.map(l => `
-    <div class="log-row">
-      <div>${l.type.charAt(0).toUpperCase() + l.type.slice(1)}</div>
-      <div>${(l.delta > 0 ? '+' : '') + l.delta.toFixed(2)} MYR</div>
-      <div class="muted">${new Date(l.createdAt).toLocaleString()}</div>
-    </div>`).join('');
-}
+        const topupButton = document.getElementById('topup');
+        topupButton.disabled = true;
+        topupButton.textContent = 'Processing...';
 
+        try {
+            const response = await fetch(`${API_BASE_URL}/wallet/topup`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: user.email, amount: amount })
+            });
 
-function lockTopupUI(locked){
-  amtEl.disabled = locked;
-  bankEl.disabled = locked;
-  if(locked){
-    topupBtn.textContent = 'Login to Top Up';
-    topupBtn.classList.add('primary');
-    topupBtn.onclick = () => { location.href = 'login.html?r=profile.html'; };
-  } else {
-    topupBtn.textContent = 'Pay & Reload';
-    topupBtn.onclick = doTopup;
-  }
-}
+            if (response.ok) {
+                alert('Top-up successful!');
+                location.reload(); // Reload the page to show the new balance and updated history
+            } else {
+                const result = await response.json();
+                throw new Error(result.message || 'Top-up failed.');
+            }
+        } catch (error) {
+            alert(`Error: ${error.message}`);
+            topupButton.disabled = false;
+            topupButton.textContent = 'Pay & Reload';
+        }
+    };
+    
+    document.getElementById('logout').onclick = () => {
+        localStorage.removeItem('lf_user');
+        alert('You have been logged out.');
+        location.href = 'index.html';
+    };
 
-/* Top-up handler (only when logged in) */
-function doTopup(){
-  if (!state.user) {
-      alert('You must be logged in to top up.');
-      return;
-  }
-  const a = +amtEl.value || 0;
-  if(a <= 0){ alert('Enter valid amount'); return; }
-  const bank = bankEl.value;
-  const userEmail = state.user.email;
-  
-  // Initialize wallet if it doesn't exist
-  if (state.wallets[userEmail] === undefined) {
-      state.wallets[userEmail] = 0;
-  }
-  
-  state.wallets[userEmail] += a;
-  state.walletLogs.unshift({ id:'WL'+Date.now().toString(36), type:'topup', delta:a, createdAt:Date.now(), note:`FPX ${bank} by ${userEmail}` });
-  save();
-  drawNav();
-  drawLogs();
-  alert('Top-up successful.');
-}
+    // --- NAVBAR ---
+    // This part is for display only, the main data load is in loadProfileData()
+    const cart = JSON.parse(localStorage.getItem('lf_cart')) || [];
+    document.getElementById('cartCount').textContent = cart.reduce((s,i) => s + (i.qty || 1), 0);
+    document.getElementById('authArea').innerHTML = `<span class="pill">Hi, ${user.email}</span>`;
 
-/* Initial render */
-drawNav();
-emailEl.textContent = state.user ? state.user.email : '— (please login)';
-document.getElementById('logout').onclick = () => {
-  localStorage.removeItem('lf_user');
-  location.href = 'login.html'; // Go to login page after logout
-};
-drawLogs();
-lockTopupUI(!state.user);
+    // --- Initial Load ---
+    document.addEventListener('DOMContentLoaded', loadProfileData);
 </script>
 </body>
 </html>

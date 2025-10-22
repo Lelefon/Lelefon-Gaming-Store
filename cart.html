@@ -36,58 +36,130 @@
     <div style="display:flex;gap:10px;margin-top:10px">
       <a class="btn ghost" href="index.html">Continue Shopping</a>
       <span style="flex:1"></span>
-      <button id="checkout" class="btn">Checkout</button>
+      <button id="checkout" class="btn primary">Checkout</button>
     </div>
   </div>
 </main>
 
 <script>
-const Store={read:(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}},write:(k,v)=>localStorage.setItem(k,JSON.stringify(v))};
-const state={user:Store.read('lf_user',null),wallets:Store.read('lf_wallets',{}),cart:Store.read('lf_cart',[])};
+    const API_BASE_URL = 'http://localhost:8787/api';
+    const Store = {
+        read: (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d } catch { return d; } },
+        write: (k, v) => localStorage.setItem(k, JSON.stringify(v))
+    };
+    
+    const user = Store.read('lf_user');
+    let cart = Store.read('lf_cart', []);
 
-function save(){Store.write('lf_cart',state.cart);refresh()}
+    async function refreshNavbar() {
+        document.getElementById('cartCount').textContent = cart.reduce((s, i) => s + (i.qty || 1), 0);
+        
+        if (user) {
+            document.getElementById('authArea').innerHTML = `<span class="pill">Hi, ${user.email}</span>`;
+            try {
+                const response = await fetch(`${API_BASE_URL}/wallet?email=${user.email}`);
+                const data = await response.json();
+                document.getElementById('walletAmt').textContent = data.balance.toFixed(2) + ' MYR';
+            } catch (e) { document.getElementById('walletAmt').textContent = 'Error'; }
+        } else {
+            document.getElementById('authArea').innerHTML = `<a class="btn primary" href="login.html">Login</a>`;
+            document.getElementById('walletAmt').textContent = '0.00 MYR';
+        }
+    }
 
-function refresh(){
-    const userBalance = state.user ? (state.wallets[state.user.email] || 0) : 0;
-    document.getElementById('walletAmt').textContent = userBalance.toFixed(2);
-    document.getElementById('cartCount').textContent=state.cart.reduce((s,i)=>s+(i.qty||1),0);
-    if(state.user)document.getElementById('authArea').innerHTML=`<span class="pill">Hi, ${state.user.email}</span>`;
-}
-refresh();
+    const listEl = document.getElementById('list');
+    const totalEl = document.getElementById('total');
 
-const list=document.getElementById('list'), totalEl=document.getElementById('total');
-function tot(){return state.cart.reduce((s,i)=>s+i.price*i.qty,0)}
-function draw(){
-  if(state.cart.length===0){ list.innerHTML='<div class="muted">Your cart is empty.</div>'; totalEl.textContent='0.00 MYR'; return; }
-  list.innerHTML=state.cart.map(i=>`
-    <div class="row" data-k="${i.key}">
-      <div><strong>${i.gameName} ${i.region?`(${i.region})`:''}</strong> — ${i.pkgLabel}
-        <div class="muted">${i.type==='direct'?'UID: '+i.uid:'Game Card'}</div>
-        <div class="qty" style="margin-top:6px">
-          <button class="btn ghost decr">-</button>
-          <input class="q" type="number" min="1" value="${i.qty}">
-          <button class="btn ghost incr">+</button>
-          <span class="badge-small" style="margin-left:auto">Unit ${i.price.toFixed(2)} MYR</span>
-        </div>
-      </div>
-      <div><div style="text-align:right;font-weight:800">${(i.price*i.qty).toFixed(2)} MYR</div><button class="btn ghost remove" style="margin-top:6px">Remove</button></div>
-    </div>`).join('');
-  list.querySelectorAll('.row').forEach(r=>{
-    const key=r.dataset.k, q=r.querySelector('.q');
-    r.querySelector('.remove').onclick=()=>{state.cart=state.cart.filter(x=>x.key!==key);save();draw();};
-    r.querySelector('.decr').onclick=()=>{q.value=Math.max(1,(+q.value||1)-1);setQ(key,+q.value)};
-    r.querySelector('.incr').onclick=()=>{q.value=(+q.value||1)+1;setQ(key,+q.value)};
-    q.onchange=()=>setQ(key,+q.value||1);
-  });
-  totalEl.textContent=tot().toFixed(2)+' MYR';
-}
-function setQ(key,v){ const it=state.cart.find(x=>x.key===key); if(it){it.qty=v; save(); draw();} }
-draw();
+    function saveAndRedraw() {
+        Store.write('lf_cart', cart);
+        refreshNavbar();
+        drawCart();
+    }
 
-document.getElementById('checkout').onclick=()=>{
-  if(!state.user){ alert('Please login first.'); location.href='login.html'; return; }
-  location.href='checkout.html?mode=cart';
-};
+    function drawCart() {
+        if (cart.length === 0) {
+            listEl.innerHTML = '<div class="muted">Your cart is empty.</div>';
+            totalEl.textContent = '0.00 MYR';
+            return;
+        }
+
+        listEl.innerHTML = cart.map(item => `
+            <div class="row" data-key="${item.key}">
+                <div>
+                    <strong>${item.gameName}</strong> — ${item.pkgLabel}
+                    <div class="muted">${item.uid ? 'UID: ' + item.uid : 'Game Card'}</div>
+                    <div class="qty" style="margin-top:6px">
+                        <button class="btn ghost decr" data-key="${item.key}">-</button>
+                        <input class="q" type="number" min="1" value="${item.qty}" data-key="${item.key}">
+                        <button class="btn ghost incr" data-key="${item.key}">+</button>
+                        <span class="badge-small" style="margin-left:auto">Unit ${item.price.toFixed(2)} MYR</span>
+                    </div>
+                </div>
+                <div>
+                    <div style="text-align:right;font-weight:800">${(item.price * item.qty).toFixed(2)} MYR</div>
+                    <button class="btn ghost remove" style="margin-top:6px" data-key="${item.key}">Remove</button>
+                </div>
+            </div>`).join('');
+        
+        const total = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+        totalEl.textContent = total.toFixed(2) + ' MYR';
+
+        // Add event listeners after drawing
+        addEventListeners();
+    }
+    
+    function addEventListeners() {
+        document.querySelectorAll('.remove').forEach(button => {
+            button.onclick = (e) => {
+                cart = cart.filter(item => item.key.toString() !== e.target.dataset.key);
+                saveAndRedraw();
+            };
+        });
+        document.querySelectorAll('.decr').forEach(button => {
+            button.onclick = (e) => updateQuantity(e.target.dataset.key, -1);
+        });
+        document.querySelectorAll('.incr').forEach(button => {
+            button.onclick = (e) => updateQuantity(e.target.dataset.key, 1);
+        });
+        document.querySelectorAll('.q').forEach(input => {
+            input.onchange = (e) => {
+                const item = cart.find(i => i.key.toString() === e.target.dataset.key);
+                if (item) {
+                    item.qty = Math.max(1, parseInt(e.target.value) || 1);
+                    saveAndRedraw();
+                }
+            };
+        });
+    }
+    
+    function updateQuantity(key, change) {
+        const item = cart.find(i => i.key.toString() === key);
+        if (item) {
+            item.qty = Math.max(1, item.qty + change);
+            saveAndRedraw();
+        }
+    }
+
+    document.getElementById('checkout').onclick = () => {
+        if (!user) {
+            alert('Please login to checkout.');
+            location.href = `login.html?r=cart.html`;
+            return;
+        }
+        if (cart.length === 0) {
+            alert('Your cart is empty.');
+            return;
+        }
+        // Move cart items to 'pending' for the checkout page
+        Store.write('lf_pending', cart);
+        location.href = 'checkout.html?mode=cart';
+    };
+
+    // Initial Load
+    document.addEventListener('DOMContentLoaded', () => {
+        refreshNavbar();
+        drawCart();
+    });
 </script>
 </body>
 </html>
