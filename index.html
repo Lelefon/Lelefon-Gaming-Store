@@ -8,28 +8,55 @@
   <link rel="stylesheet" href="homestyle.css"/>
 
   <style>
-    /* ---------- Layout (unchanged basics) ---------- */
+    /* ---------- Game Grid ---------- */
     .game-grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
-      gap: 14px;
+      gap: 16px;
     }
     @media (min-width: 600px) {.game-grid { grid-template-columns: repeat(3, 1fr); }}
     @media (min-width: 900px) {.game-grid { grid-template-columns: repeat(5, 1fr); }}
 
-    .game-card { cursor:pointer; }
-    .game-card .card-inner {
-      border:1px solid var(--border);
-      border-radius:14px;
-      overflow:hidden;
-      background:#fff;
-      transition:transform .2s ease, box-shadow .2s ease;
+    .game-card {
+      position: relative;
+      border-radius: 14px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: transform .2s ease, box-shadow .2s ease;
     }
-    .game-card:hover .card-inner { transform: translateY(-3px); box-shadow:0 8px 18px rgba(0,0,0,.08);}
-    .game-card img { width:100%; height:150px; object-fit:cover; display:block; }
-    .game-title { margin:.5rem 0 0; font-weight:700; }
+    .game-card:hover { transform: translateY(-4px); box-shadow: 0 10px 22px rgba(0,0,0,.35); }
+    .game-card img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      transition: filter .25s ease;
+    }
+    .game-card:hover img { filter: brightness(1.1); }
 
-    /* ---------- Modal: modern dark theme ---------- */
+    .game-overlay {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 40%;
+      background: linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.65) 100%);
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      padding: 10px;
+      opacity: 0;
+      transition: opacity .2s ease;
+    }
+    .game-card:hover .game-overlay { opacity: 1; }
+    .game-overlay span {
+      color: #fff;
+      font-weight: 700;
+      font-size: 1rem;
+      text-shadow: 0 1px 4px rgba(0,0,0,.9);
+    }
+
+    /* ---------- Modal ---------- */
     .modal.hidden { display:none; }
     .modal { position:fixed; inset:0; z-index:1000; }
     .modal-backdrop {
@@ -74,7 +101,7 @@
       grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
     }
 
-    /* ---------- Region card ---------- */
+    /* ---------- Region Card ---------- */
     .region-card {
       position:relative; border-radius:16px; overflow:hidden;
       background:#111; cursor:pointer;
@@ -110,15 +137,14 @@
       padding:6px 12px; border-radius:6px; color:#fff;
       box-shadow: 0 2px 6px rgba(0,0,0,.35);
     }
-    .chip-uid { background:#16a34a; }    /* green */
-    .chip-code{ background:#ea8a00; }    /* orange */
+    .chip-uid { background:#16a34a; }
+    .chip-code{ background:#ea8a00; }
 
     .region-label {
       color:#fff; font-weight:800; font-size:.98rem; margin-top:6px; padding-left:4px;
       text-shadow:0 1px 3px rgba(0,0,0,.8);
     }
 
-    /* small filter bar */
     .filter-bar { display:flex; gap:8px; margin:10px 0 18px; }
     .filter-btn { border:1px solid var(--border); background:#fff; border-radius:20px; padding:6px 12px; cursor:pointer; font-weight:700; }
     .filter-btn.active { background:var(--brand); color:#fff; border-color:var(--brand); }
@@ -154,14 +180,14 @@
   <section class="games-section" id="topup">
     <h3>Popular Games</h3>
 
-    <div class="filter-bar" role="tablist" aria-label="Filter games">
+    <div class="filter-bar">
       <button class="filter-btn active" data-filter="all">All</button>
-      <button class="filter-btn" data-filter="direct">Direct Top-Up</button>
-      <button class="filter-btn" data-filter="card">Game Card</button>
+      <button class="filter-btn" data-filter="direct">UID</button>
+      <button class="filter-btn" data-filter="card">CODE</button>
     </div>
 
     <div class="game-grid" id="gameGrid">
-      <p class="muted">Loading games from the database...</p>
+      <p class="muted">Loading games from database...</p>
     </div>
   </section>
 </main>
@@ -169,12 +195,12 @@
 <footer><p>© 2025 Lelefon Gaming Store. All Rights Reserved.</p></footer>
 
 <!-- Region Modal -->
-<div id="regionModal" class="modal hidden" aria-hidden="true">
+<div id="regionModal" class="modal hidden">
   <div class="modal-backdrop" onclick="closeModal()"></div>
-  <div class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
-    <button class="modal-close" onclick="closeModal()" aria-label="Close">×</button>
+  <div class="modal-dialog">
+    <button class="modal-close" onclick="closeModal()">×</button>
     <div class="modal-header">
-      <h3 id="modalTitle">Select Server/Region</h3>
+      <h3>Select Server/Region</h3>
       <span id="modalGameChip" class="pill-muted"></span>
     </div>
     <div class="region-grid" id="regionGrid"></div>
@@ -182,130 +208,96 @@
 </div>
 
 <script>
-  const API_BASE_URL = 'https://api.lelefon-67.workers.dev/api';
-  const Store = {
-    read: (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } },
-    write: (k, v) => localStorage.setItem(k, JSON.stringify(v)),
-  };
-  const user = Store.read('lf_user');
+const API_BASE_URL = 'https://api.lelefon-67.workers.dev/api';
+const Store = { read:(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}}, write:(k,v)=>localStorage.setItem(k,JSON.stringify(v)) };
+const user = Store.read('lf_user');
 
-  /* ---------------- Navbar ---------------- */
-  async function refreshNavbar() {
-    const cart = Store.read('lf_cart', []);
-    document.getElementById('cartCount').textContent = cart.reduce((s, i) => s + (i.qty || 1), 0);
-
-    if (user) {
-      document.getElementById('authArea').innerHTML = `<span class="pill">Hi, ${user.email}</span>`;
-      try {
-        const r = await fetch(`${API_BASE_URL}/wallet?email=${encodeURIComponent(user.email)}`);
-        const d = await r.json();
-        document.getElementById('walletAmt').textContent = Number(d.balance||0).toFixed(2) + ' MYR';
-      } catch { document.getElementById('walletAmt').textContent = 'Error'; }
-    } else {
-      document.getElementById('authArea').innerHTML = `<a class="btn primary" href="login.html">Login</a>`;
-      document.getElementById('walletAmt').textContent = '0.00 MYR';
-    }
-  }
-
-  /* ---------------- Load Games ---------------- */
-  async function loadGames() {
-    const grid = document.getElementById('gameGrid');
+async function refreshNavbar() {
+  const cart = Store.read('lf_cart', []);
+  document.getElementById('cartCount').textContent = cart.reduce((s, i) => s + (i.qty || 1), 0);
+  if (user) {
+    document.getElementById('authArea').innerHTML = `<span class="pill">Hi, ${user.email}</span>`;
     try {
-      const res = await fetch(`${API_BASE_URL}/games`);
-      const games = await res.json();
-
-      if (!games.length) {
-        grid.innerHTML = '<p class="muted">No games have been added yet. Please ask an admin to add games.</p>';
-        return;
-      }
-
-      grid.innerHTML = games.map(g => `
-        <div class="game-card" data-category="${g.category}" onclick='handleGameClick(${JSON.stringify(g)})'>
-          <div class="card-inner">
-            <img src="${g.image_url}" alt="${g.name}" onerror="this.src='images/lelefonlogo2.png'">
-          </div>
-          <p class="game-title">${g.name}</p>
-        </div>
-      `).join('');
-    } catch (e) {
-      console.error(e);
-      grid.innerHTML = '<p class="muted">Could not load games. Please ensure the backend server is reachable.</p>';
-    }
+      const r = await fetch(`${API_BASE_URL}/wallet?email=${encodeURIComponent(user.email)}`);
+      const d = await r.json();
+      document.getElementById('walletAmt').textContent = Number(d.balance||0).toFixed(2) + ' MYR';
+    } catch { document.getElementById('walletAmt').textContent = 'Error'; }
+  } else {
+    document.getElementById('authArea').innerHTML = `<a class="btn primary" href="login.html">Login</a>`;
+    document.getElementById('walletAmt').textContent = '0.00 MYR';
   }
+}
 
-  /* ---------------- Modal / Regions ---------------- */
-  function openModal() { document.getElementById('regionModal').classList.remove('hidden'); }
-  function closeModal(){ document.getElementById('regionModal').classList.add('hidden'); }
-
-  async function handleGameClick(game) {
-    const isCode = game.category === 'card';     // card = code, direct = uid
-    document.getElementById('modalTitle').textContent = 'Select Server/Region';
-    document.getElementById('modalGameChip').textContent = `${isCode ? 'CODE' : 'UID'}  ${game.name}`;
-
-    if (Number(game.regionable) === 1) {
-      try {
-        const r = await fetch(`${API_BASE_URL}/regions?gameId=${encodeURIComponent(game.id)}`);
-        const regions = await r.json();
-        renderRegionGrid(game, regions);
-        openModal();
-      } catch (e) {
-        console.error('Region fetch error', e);
-        alert('Could not fetch regions for this game.');
-      }
-    } else {
-      // No regions → go straight to product
-      navigateToProduct(game.id, game.name, null, game.uid_required, game.category);
-    }
+async function loadGames() {
+  const grid = document.getElementById('gameGrid');
+  try {
+    const res = await fetch(`${API_BASE_URL}/games`);
+    const games = await res.json();
+    if (!games.length) return grid.innerHTML = '<p class="muted">No games added yet.</p>';
+    grid.innerHTML = games.map(g => `
+      <div class="game-card" data-category="${g.category}" onclick='handleGameClick(${JSON.stringify(g)})'>
+        <img src="${g.image_url}" alt="${g.name}" onerror="this.src='images/lelefonlogo2.png'">
+        <div class="game-overlay"><span>${g.name}</span></div>
+      </div>`).join('');
+  } catch {
+    grid.innerHTML = '<p class="muted">Failed to load games.</p>';
   }
+}
 
-  function renderRegionGrid(game, regions) {
-    const grid = document.getElementById('regionGrid');
-    const isCode = game.category === 'card';
+function openModal(){ document.getElementById('regionModal').classList.remove('hidden'); }
+function closeModal(){ document.getElementById('regionModal').classList.add('hidden'); }
 
-    if (!regions.length) {
-      grid.innerHTML = '<p class="muted">No regions have been added for this game yet.</p>';
-      return;
-    }
+async function handleGameClick(game) {
+  const isCode = game.category === 'card';
+  document.getElementById('modalGameChip').textContent = `${isCode ? 'CODE' : 'UID'} ${game.name}`;
+  if (Number(game.regionable) === 1) {
+    try {
+      const r = await fetch(`${API_BASE_URL}/regions?gameId=${encodeURIComponent(game.id)}`);
+      const regions = await r.json();
+      renderRegionGrid(game, regions);
+      openModal();
+    } catch { alert('Could not fetch regions.'); }
+  } else {
+    navigateToProduct(game.id, game.name, null, game.uid_required, game.category);
+  }
+}
 
-    grid.innerHTML = regions.map(r => `
-      <div class="region-card"
-           onclick="navigateToProduct('${game.id}','${encodeURIComponent(game.name)}','${r.region_key}',${game.uid_required},'${game.category}')">
-        <div class="thumb">
-          <img src="${game.image_url}" alt="${game.name}" onerror="this.src='images/lelefonlogo2.png'">
-          <div class="region-overlay">
-            <div class="region-chip ${isCode ? 'chip-code' : 'chip-uid'}">${isCode ? 'CODE' : 'UID'}</div>
-            <div class="region-label">${game.name} (${r.name})</div>
-          </div>
-          <div class="region-flag" title="${r.name}">${r.flag || '🌐'}</div>
+function renderRegionGrid(game, regions) {
+  const grid = document.getElementById('regionGrid');
+  const isCode = game.category === 'card';
+  if (!regions.length) return grid.innerHTML = '<p class="muted">No regions yet.</p>';
+  grid.innerHTML = regions.map(r => `
+    <div class="region-card" onclick="navigateToProduct('${game.id}','${encodeURIComponent(game.name)}','${r.region_key}',${game.uid_required},'${game.category}')">
+      <div class="thumb">
+        <img src="${game.image_url}" alt="${game.name}">
+        <div class="region-overlay">
+          <div class="region-chip ${isCode ? 'chip-code' : 'chip-uid'}">${isCode ? 'CODE' : 'UID'}</div>
+          <div class="region-label">${game.name} (${r.name})</div>
         </div>
+        <div class="region-flag">${r.flag || '🌐'}</div>
       </div>
-    `).join('');
-  }
+    </div>`).join('');
+}
 
-  function navigateToProduct(gameId, gameName, regionKey, uidRequired, category) {
-    let url = `product.html?game=${encodeURIComponent(gameId)}&name=${encodeURIComponent(gameName)}&uid=${uidRequired}&cat=${encodeURIComponent(category||'direct')}`;
-    if (regionKey) url += `&region=${encodeURIComponent(regionKey)}`;
-    location.href = url;
-  }
+function navigateToProduct(id,name,region,uid,cat){
+  let url=`product.html?game=${encodeURIComponent(id)}&name=${encodeURIComponent(name)}&uid=${uid}&cat=${encodeURIComponent(cat)}`;
+  if(region)url+=`&region=${encodeURIComponent(region)}`;
+  location.href=url;
+}
 
-  /* ---------------- Filters ---------------- */
-  document.querySelectorAll('.filter-btn').forEach(btn => {
-    btn.onclick = () => {
-      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      const filter = btn.dataset.filter; // all | direct | card
-      document.querySelectorAll('.game-card').forEach(card => {
-        const cat = card.getAttribute('data-category');
-        card.style.display = (filter === 'all' || cat === filter) ? 'block' : 'none';
-      });
-    };
-  });
+document.querySelectorAll('.filter-btn').forEach(btn=>{
+  btn.onclick=()=>{
+    document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    const f=btn.dataset.filter;
+    document.querySelectorAll('.game-card').forEach(c=>{
+      const cat=c.getAttribute('data-category');
+      c.style.display=(f==='all'||cat===f)?'block':'none';
+    });
+  };
+});
 
-  /* ---------------- Init ---------------- */
-  document.addEventListener('DOMContentLoaded', () => {
-    refreshNavbar();
-    loadGames();
-  });
+document.addEventListener('DOMContentLoaded',()=>{refreshNavbar();loadGames();});
 </script>
 </body>
 </html>
