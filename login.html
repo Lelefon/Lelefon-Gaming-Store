@@ -18,7 +18,6 @@
 </style>
 </head>
 <body>
-<!-- Google Identity Services Library -->
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 
 <header class="navbar">
@@ -35,111 +34,138 @@
 <main class="wrap">
   <div class="card">
     <div class="title">Sign In</div>
-    
-    <!-- Container for the Google Sign-In button -->
     <div id="googleSignInButton"></div>
 
     <div class="divider">OR</div>
 
     <div class="field"><label>Email</label><input id="email" type="email" placeholder="you@email.com"/></div>
     <div class="field"><label>Password</label><input id="pass" type="password" placeholder="••••••••"/></div>
-    <div class="btn-row" style="margin-top:8px"><button id="doLogin" class="btn primary">Login</button><button id="doRegister" class="btn ghost">Register</button></div>
-    <div class="muted" style="margin-top:10px">Tip: this demo stores accounts locally (no real server). Use Profile for wallet top-up.</div>
+    <div class="btn-row" style="margin-top:8px">
+      <button id="doLogin" class="btn primary">Login</button>
+      <button id="doRegister" class="btn ghost">Register</button>
+    </div>
+    <div class="muted" style="margin-top:10px">Use Google Sign-In or register with email/password.</div>
   </div>
 </main>
 
 <script>
+const API_BASE = 'https://api.lelefon-67.workers.dev/api';
+
 const Store={read:(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}},write:(k,v)=>localStorage.setItem(k,JSON.stringify(v))};
 
-// Reading the central wallets store
-const state={user:Store.read('lf_user',null),wallets:Store.read('lf_wallets',{}),cart:Store.read('lf_cart',[]),users:Store.read('lf_users',{})};
-
-// Update navbar based on central wallet data
+// Wallet/cart UI (local)
+const state={user:Store.read('lf_user',null),wallets:Store.read('lf_wallets',{}),cart:Store.read('lf_cart',[])};
 const userBalance = state.user ? (state.wallets[state.user.email] || 0) : 0;
 document.getElementById('walletAmt').textContent = userBalance.toFixed(2);
 document.getElementById('cartCount').textContent=state.cart.reduce((s,i)=>s+(i.qty||1),0);
 
 function gotoReturn(){ const back=new URLSearchParams(location.search).get('r'); location.href = back || 'index.html'; }
 
-// --- Google Sign-In Handler ---
+// =============== Google Sign-In ===============
 window.onload = function () {
   google.accounts.id.initialize({
-    // Your actual Client ID has been inserted here
-    client_id: "349262547313-jd6mbf9ie22bdb1ftae5lrp4krtni6di.apps.googleusercontent.com", 
+    client_id: "349262547313-jd6mbf9ie22bdb1ftae5lrp4krtni6di.apps.googleusercontent.com",
     callback: handleCredentialResponse
   });
   google.accounts.id.renderButton(
     document.getElementById("googleSignInButton"),
-    { theme: "outline", size: "large", width: "350" }  // Customization of the button
+    { theme: "outline", size: "large", width: "350" }
   );
-  // google.accounts.id.prompt(); // Optional: Displays a one-tap login prompt
 };
 
-function handleCredentialResponse(response) {
-  // The response.credential is a JWT (JSON Web Token)
-  const decodedToken = jwt_decode(response.credential);
-  
-  const userEmail = decodedToken.email;
-  const userName = decodedToken.name; // You can use this later if you want
-
-  console.log("Logged in with Google:", userName, `(${userEmail})`);
-
-  // Check if user exists. If not, register them automatically.
-  if (!state.users[userEmail]) {
-    console.log("New user via Google. Registering...");
-    // For Google Sign-In, we can store a placeholder password or note
-    state.users[userEmail] = { pass: 'google_sso' }; 
-    // IMPORTANT: Create a wallet for the new user
-    state.wallets[userEmail] = 0;
-    
-    Store.write('lf_users', state.users);
-    Store.write('lf_wallets', state.wallets);
-  }
-
-  // Log the user in
-  Store.write('lf_user', { email: userEmail });
-  alert(`Welcome, ${userName}! You are now logged in.`);
-  gotoReturn();
-}
-
-// A simple helper function to decode the JWT payload
 function jwt_decode(token) {
   const base64Url = token.split('.')[1];
   const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-  const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
-    return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-  }).join(''));
-
+  const jsonPayload = decodeURIComponent(atob(base64).split('').map(c =>
+    '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)
+  ).join(''));
   return JSON.parse(jsonPayload);
 }
 
+async function handleCredentialResponse(response) {
+  const decoded = jwt_decode(response.credential);
+  const email = (decoded.email || '').toLowerCase();
+  const name  = decoded.name || 'User';
 
-// --- Existing Email/Password Logic ---
-document.getElementById('doLogin').onclick=()=>{
-  const email=document.getElementById('email').value.trim().toLowerCase();
-  const pass=document.getElementById('pass').value;
-  if(!state.users[email] || state.users[email].pass!==btoa(pass)){ alert('Invalid email or password.'); return; }
-  state.user={email}; Store.write('lf_user',state.user); alert('Logged in.'); gotoReturn();
+  try {
+    // ensure exists in DB
+    await fetch(`${API_BASE}/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, provider: 'google' })
+    });
+
+    // login as user (provider google)
+    await fetch(`${API_BASE}/login/user`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, provider: 'google' })
+    });
+
+    Store.write('lf_user', { email });
+    alert(`Welcome, ${name}!`);
+    gotoReturn();
+  } catch (err) {
+    console.error(err);
+    alert('Google login failed.');
+  }
+}
+
+// =============== Local email/password ===============
+document.getElementById('doLogin').onclick = async () => {
+  const email = document.getElementById('email').value.trim().toLowerCase();
+  const pass  = document.getElementById('pass').value;
+  if (!email || !pass) return alert('Enter email and password.');
+
+  try {
+    const res = await fetch(`${API_BASE}/login/user`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password: pass, provider: 'local' })
+    });
+    const json = await res.json();
+    if (!res.ok || !json.success) {
+      alert(json.message || 'Login failed.');
+      return;
+    }
+    Store.write('lf_user', { email });
+    alert('Logged in.');
+    gotoReturn();
+  } catch (err) {
+    console.error(err);
+    alert('Login error.');
+  }
 };
-document.getElementById('doRegister').onclick=()=>{
-  const email=document.getElementById('email').value.trim().toLowerCase();
-  const pass=document.getElementById('pass').value;
-  if(!email||!pass){ alert('Enter email and password.'); return; }
-  
-  if(state.users[email]){ alert('Email already registered.'); return; }
-  
-  // Create user
-  state.users[email]={pass:btoa(pass)};
-  // Initialize wallet for the new user
-  state.wallets[email] = 0;
-  
-  // Save all updated data
-  Store.write('lf_users', state.users);
-  Store.write('lf_wallets', state.wallets);
-  Store.write('lf_user',{email});
-  
-  alert('Registered & logged in.');
-  gotoReturn();
+
+document.getElementById('doRegister').onclick = async () => {
+  const email = document.getElementById('email').value.trim().toLowerCase();
+  const pass  = document.getElementById('pass').value;
+  if (!email || !pass) return alert('Enter email and password.');
+
+  try {
+    const res = await fetch(`${API_BASE}/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password: pass, provider: 'local' })
+    });
+    const json = await res.json();
+    if (!res.ok || !json.success) {
+      alert(json.message || 'Registration failed.');
+      return;
+    }
+
+    // optional: keep small local cache for your wallet UI (unchanged behavior)
+    const users = Store.read('lf_users', {});
+    users[email] = { pass: btoa(pass) };
+    Store.write('lf_users', users);
+
+    Store.write('lf_user', { email });
+    alert('Registered successfully!');
+    gotoReturn();
+  } catch (err) {
+    console.error(err);
+    alert('Registration error.');
+  }
 };
 </script>
 </body>
