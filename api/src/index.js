@@ -59,7 +59,6 @@ async function handleUserLogin(request, env) {
     }
   }
 
-  // Optional: enforce non-admin here, but it’s harmless to allow admin too.
   return Response.json({ success: true, email: user.email, role: user.role || 'user' });
 }
 
@@ -214,6 +213,21 @@ export default {
           data.id, data.name, data.image_url, data.category, data.regionable ? 1 : 0, data.uid_required ? 1 : 0
         ).run();
         response = Response.json({ success: true });
+
+      // NEW: delete a game (+ its regions & packages)
+      } else if (url.pathname === '/api/admin/game' && request.method === 'DELETE') {
+        const id = url.searchParams.get('id');
+        if (!id) {
+          response = Response.json({ success: false, message: 'Missing id' }, { status: 400 });
+        } else {
+          // Do explicit deletes to be safe even if FK cascade is off.
+          await env.DB.batch([
+            env.DB.prepare('DELETE FROM packages WHERE game_id = ?').bind(id),
+            env.DB.prepare('DELETE FROM regions WHERE game_id = ?').bind(id),
+            env.DB.prepare('DELETE FROM games WHERE id = ?').bind(id),
+          ]);
+          response = Response.json({ success: true });
+        }
 
       } else if (url.pathname === '/api/admin/region' && request.method === 'POST') {
         const data = await request.json();

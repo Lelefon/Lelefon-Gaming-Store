@@ -70,12 +70,21 @@
           <div class="form-group"><label>Game ID</label><input id="gameId" type="text"></div>
           <div class="form-group"><label>Game Name</label><input id="gameName" type="text"></div>
           <div class="form-group"><label>Image URL</label><input id="gameImg" type="text" value="images/lelefonlogo2.png"></div>
-          <div class="form-group"><label>Category</label><select id="gameCat"><option value="direct">Direct Topup</option><option value="card">Game Card</option></select></div>
+          <div class="form-group"><label>Category</label>
+            <select id="gameCat">
+              <option value="direct">Direct Topup</option>
+              <option value="card">Game Card</option>
+            </select>
+          </div>
           <div class="form-group"><label>Options</label>
             <input type="checkbox" id="gameRegionable"> Has Multiple Regions?
             <input type="checkbox" id="gameUidReq" checked> Requires UID?
           </div>
-          <button id="saveGameBtn" class="btn primary">Save Game</button>
+          <div class="btn-row">
+            <button id="saveGameBtn" class="btn primary">Save Game</button>
+            <!-- NEW: Delete Game button -->
+            <button id="deleteGameBtn" class="btn ghost" type="button" title="Delete this game (and its regions & packages)">Delete Game</button>
+          </div>
         </section>
 
         <section class="card">
@@ -257,6 +266,35 @@ document.getElementById('saveGameBtn').addEventListener('click', async () => {
   loadGames();
 });
 
+// NEW: Delete game (and related regions/packages)
+document.getElementById('deleteGameBtn').addEventListener('click', async () => {
+  const idFromField = document.getElementById('gameId').value.trim();
+  const idFromSelect = gameSelectEl.value;
+  const id = idFromField || idFromSelect;
+
+  if (!id) return alert('Select a game from the dropdown or fill in Game ID to delete.');
+
+  if (!confirm(`Delete game "${id}" and all of its regions & packages? This cannot be undone.`)) return;
+
+  try {
+    const res = await fetch(`${API_BASE_URL}/admin/game?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error('Delete failed');
+    alert('Game deleted.');
+    // Clear form
+    document.getElementById('gameId').value = '';
+    document.getElementById('gameName').value = '';
+    document.getElementById('gameImg').value = 'images/lelefonlogo2.png';
+    document.getElementById('gameCat').value = 'direct';
+    document.getElementById('gameRegionable').checked = false;
+    document.getElementById('gameUidReq').checked = true;
+    document.getElementById('packageList').innerHTML = '<p class="muted">Select a game to see packages.</p>';
+    loadGames();
+  } catch (e) {
+    console.error(e);
+    alert('Failed to delete game.');
+  }
+});
+
 // Packages & Regions
 gameSelectEl.addEventListener('change', async e => {
   const gameId = e.target.value;
@@ -268,6 +306,14 @@ gameSelectEl.addEventListener('change', async e => {
     document.getElementById('packageList').innerHTML = '<p>Select a game to see packages.</p>';
     return;
   }
+  // (Optional convenience) populate fields when selecting a game
+  document.getElementById('gameId').value = game.id;
+  document.getElementById('gameName').value = game.name || '';
+  document.getElementById('gameImg').value = game.image_url || 'images/lelefonlogo2.png';
+  document.getElementById('gameCat').value = game.category || 'direct';
+  document.getElementById('gameRegionable').checked = !!game.regionable;
+  document.getElementById('gameUidReq').checked = !!game.uid_required;
+
   if (game.regionable) {
     regionArea.classList.remove('hidden');
     await loadRegionsForGame(gameId);
@@ -325,23 +371,6 @@ window.deletePackage = async id => {
     gameSelectEl.dispatchEvent(new Event('change'));
   }
 };
-
-document.getElementById('addPackageBtn').addEventListener('click', async () => {
-  const gameId = gameSelectEl.value;
-  const game = ALL_GAMES.find(g => g.id === gameId);
-  if (!game) return alert('Select a game first.');
-  const regionKey = game.regionable ? document.getElementById('regionSelect').value : null;
-  const label = document.getElementById('packageName').value;
-  const price = parseFloat(document.getElementById('packagePrice').value);
-  if (!label || !price) return alert('Enter name and price.');
-  await fetch(`${API_BASE_URL}/admin/package`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ game_id: gameId, region_key: regionKey, label, price })
-  });
-  alert('Package added!');
-  gameSelectEl.dispatchEvent(new Event('change'));
-});
 
 // Auto-login if session active
 if (sessionStorage.getItem('isAdmin') === 'true') showAdminPanel();
