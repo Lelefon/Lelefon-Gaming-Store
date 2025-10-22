@@ -81,9 +81,8 @@
             <input type="checkbox" id="gameUidReq" checked> Requires UID?
           </div>
           <div class="btn-row">
-            <button id="saveGameBtn" class="btn primary">Save Game</button>
-            <!-- NEW: Delete Game button -->
-            <button id="deleteGameBtn" class="btn ghost" type="button" title="Delete this game (and its regions & packages)">Delete Game</button>
+            <button id="saveGameBtn" class="btn primary" type="button">Save Game</button>
+            <button id="deleteGameBtn" class="btn danger" type="button">Delete Game</button>
           </div>
         </section>
 
@@ -157,7 +156,6 @@ async function handleAdminLogin(event) {
     alert('Login failed. The server might be down or an error occurred.');
   }
 }
-
 document.querySelector('#adminLogin form').addEventListener('submit', handleAdminLogin);
 
 // Logout
@@ -175,6 +173,7 @@ function showAdminPanel() {
   authAreaEl.innerHTML = `<span class="pill">Admin Logged In</span>`;
   loadGames();
   loadUsers();
+  loadOrders();
 }
 
 // Load games
@@ -207,9 +206,7 @@ async function loadUsers() {
             <td>${user.email}</td>
             <td>${user.role}</td>
             <td>${(user.balance || 0).toFixed(2)}</td>
-            <td>
-              <button class="btn ghost" onclick="editWallet('${user.email}')">Set Balance</button>
-            </td>
+            <td><button class="btn ghost" onclick="editWallet('${user.email}')">Set Balance</button></td>
           </tr>`;
       }
       tableHtml += '</tbody></table>';
@@ -225,7 +222,7 @@ async function loadUsers() {
 
 window.editWallet = async (email) => {
   const currentBalance = prompt(`Enter new balance for ${email}:`, '0.00');
-  if (currentBalance === null) return; // User cancelled
+  if (currentBalance === null) return;
 
   const newBalance = parseFloat(currentBalance);
   if (isNaN(newBalance)) return alert('Invalid number provided.');
@@ -238,7 +235,7 @@ window.editWallet = async (email) => {
     });
     if (!response.ok) throw new Error('Server rejected the update.');
     alert('Wallet updated successfully!');
-    loadUsers(); // Refresh the user list to show the new balance
+    loadUsers();
   } catch (err) {
     console.error('Failed to update wallet:', err);
     alert('An error occurred while updating the wallet.');
@@ -266,33 +263,17 @@ document.getElementById('saveGameBtn').addEventListener('click', async () => {
   loadGames();
 });
 
-// NEW: Delete game (and related regions/packages)
+// OPTIONAL: delete a game quickly from the left form
 document.getElementById('deleteGameBtn').addEventListener('click', async () => {
-  const idFromField = document.getElementById('gameId').value.trim();
-  const idFromSelect = gameSelectEl.value;
-  const id = idFromField || idFromSelect;
-
-  if (!id) return alert('Select a game from the dropdown or fill in Game ID to delete.');
-
-  if (!confirm(`Delete game "${id}" and all of its regions & packages? This cannot be undone.`)) return;
-
-  try {
-    const res = await fetch(`${API_BASE_URL}/admin/game?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
-    if (!res.ok) throw new Error('Delete failed');
-    alert('Game deleted.');
-    // Clear form
-    document.getElementById('gameId').value = '';
-    document.getElementById('gameName').value = '';
-    document.getElementById('gameImg').value = 'images/lelefonlogo2.png';
-    document.getElementById('gameCat').value = 'direct';
-    document.getElementById('gameRegionable').checked = false;
-    document.getElementById('gameUidReq').checked = true;
-    document.getElementById('packageList').innerHTML = '<p class="muted">Select a game to see packages.</p>';
-    loadGames();
-  } catch (e) {
-    console.error(e);
-    alert('Failed to delete game.');
-  }
+  const id = document.getElementById('gameId').value.trim();
+  if (!id) return alert('Enter the Game ID to delete.');
+  if (!confirm(`Delete game "${id}"? This will also remove its packages and regions.`)) return;
+  const res = await fetch(`${API_BASE_URL}/admin/game?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
+  if (!res.ok) return alert('Failed to delete game.');
+  alert('Game deleted.');
+  document.getElementById('gameId').value = '';
+  loadGames();
+  gameSelectEl.dispatchEvent(new Event('change'));
 });
 
 // Packages & Regions
@@ -306,14 +287,6 @@ gameSelectEl.addEventListener('change', async e => {
     document.getElementById('packageList').innerHTML = '<p>Select a game to see packages.</p>';
     return;
   }
-  // (Optional convenience) populate fields when selecting a game
-  document.getElementById('gameId').value = game.id;
-  document.getElementById('gameName').value = game.name || '';
-  document.getElementById('gameImg').value = game.image_url || 'images/lelefonlogo2.png';
-  document.getElementById('gameCat').value = game.category || 'direct';
-  document.getElementById('gameRegionable').checked = !!game.regionable;
-  document.getElementById('gameUidReq').checked = !!game.uid_required;
-
   if (game.regionable) {
     regionArea.classList.remove('hidden');
     await loadRegionsForGame(gameId);
@@ -324,7 +297,7 @@ gameSelectEl.addEventListener('change', async e => {
 });
 
 async function loadRegionsForGame(gameId) {
-  const res = await fetch(`${API_BASE_URL}/regions?gameId=${gameId}`);
+  const res = await fetch(`${API_BASE_URL}/regions?gameId=${encodeURIComponent(gameId)}`);
   const regions = await res.json();
   const regionSelectEl = document.getElementById('regionSelect');
   regionSelectEl.innerHTML = regions.map(r => `<option value="${r.region_key}">${r.name}</option>`).join('');
@@ -352,7 +325,7 @@ document.getElementById('addRegionBtn').addEventListener('click', async () => {
 async function loadPackagesForGame(gameId, regionKey) {
   const packageListEl = document.getElementById('packageList');
   packageListEl.innerHTML = '<p>Loading packages...</p>';
-  const res = await fetch(`${API_BASE_URL}/packages?gameId=${gameId}&regionKey=${regionKey || ''}`);
+  const res = await fetch(`${API_BASE_URL}/packages?gameId=${encodeURIComponent(gameId)}&regionKey=${encodeURIComponent(regionKey || '')}`);
   const packages = await res.json();
   if (packages.length) {
     packageListEl.innerHTML = packages.map(pkg => `
@@ -367,10 +340,68 @@ async function loadPackagesForGame(gameId, regionKey) {
 
 window.deletePackage = async id => {
   if (confirm('Delete this package?')) {
-    await fetch(`${API_BASE_URL}/admin/package?id=${id}`, { method: 'DELETE' });
+    await fetch(`${API_BASE_URL}/admin/package?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
     gameSelectEl.dispatchEvent(new Event('change'));
   }
 };
+
+document.getElementById('addPackageBtn').addEventListener('click', async () => {
+  const gameId = gameSelectEl.value;
+  const game = ALL_GAMES.find(g => g.id === gameId);
+  if (!game) return alert('Select a game first.');
+  const regionKey = game.regionable ? document.getElementById('regionSelect').value : null;
+  const label = document.getElementById('packageName').value;
+  const price = parseFloat(document.getElementById('packagePrice').value);
+  if (!label || !price) return alert('Enter name and price.');
+  await fetch(`${API_BASE_URL}/admin/package`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ game_id: gameId, region_key: regionKey, label, price })
+  });
+  alert('Package added!');
+  gameSelectEl.dispatchEvent(new Event('change'));
+});
+
+// ---------- NEW: Load recent orders for admin ----------
+async function loadOrders(){
+  const el = document.getElementById('orderList');
+  el.innerHTML = '<p class="muted">Loading recent orders...</p>';
+  try {
+    const res = await fetch(`${API_BASE_URL}/admin/orders`);
+    if (!res.ok) throw new Error('Failed to load orders.');
+    const orders = await res.json();
+    if (!orders.length) {
+      el.innerHTML = '<p>No orders yet.</p>';
+      return;
+    }
+    let html = `<table class="table">
+      <thead>
+        <tr>
+          <th>Order ID</th>
+          <th>User</th>
+          <th>Total (MYR)</th>
+          <th>Method</th>
+          <th>Status</th>
+          <th>Created At</th>
+        </tr>
+      </thead><tbody>`;
+    for (const o of orders) {
+      html += `<tr>
+        <td>${o.id}</td>
+        <td>${o.user_email}</td>
+        <td>${(+o.total).toFixed(2)}</td>
+        <td>${o.payment_method}</td>
+        <td>${o.status}</td>
+        <td>${o.created_at}</td>
+      </tr>`;
+    }
+    html += '</tbody></table>';
+    el.innerHTML = html;
+  } catch (err) {
+    console.error(err);
+    el.innerHTML = '<p class="danger">Could not load orders.</p>';
+  }
+}
 
 // Auto-login if session active
 if (sessionStorage.getItem('isAdmin') === 'true') showAdminPanel();

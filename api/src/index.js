@@ -298,21 +298,24 @@ export default {
         ).bind(email).all();
         response = Response.json(results);
 
-      // ----- Admin utilities -----
-      } else if (url.pathname === '/api/admin/users' && request.method === 'GET') {
-        const { results } = await env.DB.prepare(
-          'SELECT u.email, u.role, w.balance FROM users u LEFT JOIN wallets w ON u.email = w.user_email ORDER BY u.created_at DESC'
-        ).all();
-        response = Response.json(results);
+// ----- Admin utilities -----
+} else if (url.pathname === '/api/admin/users' && request.method === 'GET') {
+  const { results } = await env.DB.prepare(
+    'SELECT u.email, u.role, w.balance FROM users u LEFT JOIN wallets w ON u.email = w.user_email ORDER BY u.created_at DESC'
+  ).all();
+  response = Response.json(results);
 
-      } else if (url.pathname === '/api/admin/wallet' && request.method === 'POST') {
-        const { email, newBalance } = await request.json();
-        await env.DB.prepare('UPDATE wallets SET balance = ? WHERE user_email = ?')
-          .bind(newBalance, (email || '').toLowerCase())
-          .run();
-        response = Response.json({ success: true });
+// NEW: list recent orders for admin
+} else if (url.pathname === '/api/admin/orders' && request.method === 'GET') {
+  const { results } = await env.DB.prepare(
+    `SELECT id, user_email, total, payment_method, status, created_at
+     FROM orders
+     ORDER BY datetime(created_at) DESC
+     LIMIT 100`
+  ).all();
+  response = Response.json(results);
 
-      } else if (url.pathname === '/api/admin/game' && request.method === 'POST') {
+} else if (url.pathname === '/api/admin/wallet' && request.method === 'POST') {
         const data = await request.json();
         await env.DB.prepare(
           'INSERT OR REPLACE INTO games (id, name, image_url, category, regionable, uid_required) VALUES (?, ?, ?, ?, ?, ?)'
