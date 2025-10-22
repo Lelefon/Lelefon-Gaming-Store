@@ -8,43 +8,61 @@
 <link rel="stylesheet" href="homestyle.css"/>
 <style>
   .wrap{width:min(1100px,92vw);margin:24px auto}
-  .grid{display:grid;grid-template-columns:1fr;gap:18px} /* Mobile: 1 column */
-  @media (min-width: 900px){.grid{grid-template-columns:2fr 1fr}} /* Desktop: 2 columns */
-
+  .grid{display:grid;grid-template-columns:1fr;gap:18px}
+  @media (min-width:900px){.grid{grid-template-columns:2fr 1fr}}
   .product-head{display:flex;gap:18px;align-items:center;margin:8px 0 18px}
+  .thumb{position:relative}
   .product-head img{width:72px;height:72px;border-radius:14px;border:1px solid #eee;object-fit:cover}
-  .product-title h2{margin:0;font-size:1.6rem}
-  
-  .pkg-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px} /* Mobile: 2 columns */
-  @media (min-width: 600px){.pkg-grid{grid-template-columns:repeat(3,1fr)}} /* Tablet/Desktop: 3 columns */
+  .badge{display:inline-flex;gap:8px;align-items:center;padding:4px 10px;border:1px solid #e6e6e6;border-radius:999px;font-weight:700;margin-left:8px}
+  .chip{display:inline-block;padding:4px 10px;border-radius:8px;font-weight:800;color:#fff;font-size:.74rem;margin-right:8px}
+  .chip-uid{background:#16a34a}
+  .chip-code{background:#ea8a00}
 
-  .badge{display:inline-block;padding:4px 10px;border:1px solid #e6e6e6;border-radius:999px;font-weight:700;margin-left:8px}
-  .pkg{border:1px solid #e6e6e6;border-radius:12px;padding:14px;background:#fff;cursor:pointer; text-align: left; transition: all .2s ease;}
-  .pkg.active{outline:2px solid var(--brand); border-color: var(--brand);}
+  .pkg-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+  @media (min-width:600px){.pkg-grid{grid-template-columns:repeat(3,1fr)}}
+  .pkg{border:1px solid #e6e6e6;border-radius:12px;padding:14px;background:#fff;cursor:pointer;text-align:left;transition:all .2s ease}
+  .pkg.active{outline:2px solid var(--brand);border-color:var(--brand)}
   .card{border:1px solid #e6e6e6;border-radius:12px;background:#fff;padding:14px}
   .qty{display:flex;align-items:center;gap:8px}
   .qty input{width:72px;text-align:center}
   .price-row{display:flex;justify-content:space-between;align-items:center;margin-top:8px;font-weight:800}
-
-  input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-  input[type=number] { -moz-appearance: textfield; }
+  input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+  input[type=number]{-moz-appearance:textfield}
 </style>
 </head>
 <body>
 <header class="navbar">
   <div class="navbar-inner">
     <div class="logo-container"><a href="index.html" class="logo-link"><img src="images/lelefonlogo.png" class="logo" alt=""><h1>Lelefon Gaming</h1></a></div>
-    <nav class="right-area"><a href="index.html">Home</a><a href="transaction.html">Transactions</a><a href="profile.html">Profile</a><span class="wallet-pill">LF Wallet: <span id="walletAmt">0.00</span> MYR</span><a class="btn ghost" href="cart.html">Cart (<span id="cartCount">0</span>)</a><span id="authArea"><a class="btn primary" href="login.html">Login</a></span></nav>
+    <nav class="right-area">
+      <a href="index.html">Home</a><a href="transaction.html">Transactions</a><a href="profile.html">Profile</a>
+      <span class="wallet-pill">LF Wallet: <span id="walletAmt">0.00</span> MYR</span>
+      <a class="btn ghost" href="cart.html">Cart (<span id="cartCount">0</span>)</a>
+      <span id="authArea"><a class="btn primary" href="login.html">Login</a></span>
+    </nav>
   </div>
 </header>
+
 <main class="wrap">
   <div class="crumbs"><a href="index.html">Home</a> / <a href="index.html#topup">Top-Up</a> / <span id="crumbGame">Game</span></div>
-  <div class="product-head"><img id="gameImg" src="images/lelefonlogo2.png" alt=""><div class="product-title"><h2 id="titleText">Game</h2><div class="muted">Choose a package, enter your details, then Add to Cart or Buy Now.</div></div></div>
+
+  <div class="product-head">
+    <div class="thumb"><img id="gameImg" src="images/lelefonlogo2.png" alt=""></div>
+    <div class="product-title">
+      <h2 id="titleText">Game</h2>
+      <div class="muted">Choose a package, enter your details, then Add to Cart or Buy Now.</div>
+      <div style="margin-top:8px">
+        <span id="modeChip" class="chip chip-uid">UID</span>
+        <span id="regionBadge" class="badge" style="display:none"></span>
+      </div>
+    </div>
+  </div>
+
   <div class="grid">
     <section><div class="pkg-grid" id="pkgGrid"><p class="muted">Loading packages...</p></div></section>
     <aside>
       <div class="card">
-        <div id="uidField" style="display: none;" class="field"><label><strong>User ID</strong></label><input id="uidInput" placeholder="Enter User ID"/></div>
+        <div id="uidField" style="display:none" class="field"><label><strong>User ID</strong></label><input id="uidInput" placeholder="Enter User ID"/></div>
         <div class="field"><label><strong>Quantity</strong></label><div class="qty"><button id="qMinus" class="btn ghost">–</button><input id="qtyInput" type="number" min="1" value="1"/><button id="qPlus" class="btn ghost">+</button></div></div>
         <div class="price-row"><span>Total</span><span id="totalPrice">0.00 MYR</span></div>
         <div style="display:flex;gap:10px;margin-top:10px"><button id="addCart" class="btn ghost">Add to Cart</button><button id="buyNow" class="btn primary">Buy Now</button></div>
@@ -52,128 +70,122 @@
     </aside>
   </div>
 </main>
+
 <script>
-    const API_BASE_URL = 'https://api.lelefon-67.workers.dev/api';
-    const Store = { read: (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d } catch { return d; } }, write: (k, v) => localStorage.setItem(k, JSON.stringify(v)) };
-    
-    const user = Store.read('lf_user');
+  const API_BASE_URL = 'https://api.lelefon-67.workers.dev/api';
+  const Store={read:(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}},write:(k,v)=>localStorage.setItem(k,JSON.stringify(v))};
+  const user = Store.read('lf_user');
 
-    async function refreshNavbar() {
-        const cart = Store.read('lf_cart', []);
-        document.getElementById('cartCount').textContent = cart.reduce((s, i) => s + (i.qty || 1), 0);
-        
-        if (user) {
-            document.getElementById('authArea').innerHTML = `<span class="pill">Hi, ${user.email}</span>`;
-            try {
-                const response = await fetch(`${API_BASE_URL}/wallet?email=${user.email}`);
-                const data = await response.json();
-                document.getElementById('walletAmt').textContent = data.balance.toFixed(2) + ' MYR';
-            } catch (e) { document.getElementById('walletAmt').textContent = 'Error'; }
-        } else {
-            document.getElementById('authArea').innerHTML = `<a class="btn primary" href="login.html">Login</a>`;
-            document.getElementById('walletAmt').textContent = '0.00 MYR';
-        }
+  async function refreshNavbar(){
+    const cart = Store.read('lf_cart', []);
+    document.getElementById('cartCount').textContent = cart.reduce((s,i)=>s+(i.qty||1),0);
+    if(user){
+      document.getElementById('authArea').innerHTML = `<span class="pill">Hi, ${user.email}</span>`;
+      try{
+        const r = await fetch(`${API_BASE_URL}/wallet?email=${user.email}`);
+        const d = await r.json();
+        document.getElementById('walletAmt').textContent = Number(d.balance||0).toFixed(2)+' MYR';
+      }catch{ document.getElementById('walletAmt').textContent='Error'; }
+    }else{
+      document.getElementById('authArea').innerHTML = `<a class="btn primary" href="login.html">Login</a>`;
+      document.getElementById('walletAmt').textContent='0.00 MYR';
     }
+  }
 
-    const params = new URLSearchParams(location.search);
-    const gameId = params.get('game');
-    const gameName = params.get('name');
-    const regionKey = params.get('region');
-    const needsUID = params.get('uid') === '1';
+  const params = new URLSearchParams(location.search);
+  const gameId   = params.get('game');
+  const gameName = params.get('name');
+  const regionKey= params.get('region');
+  const needsUID = params.get('uid') === '1';
+  const category = params.get('cat') || 'direct';
 
-    let selectedPackage = null;
-    const qtyEl = document.getElementById('qtyInput');
+  // Header setup
+  document.getElementById('crumbGame').textContent = gameName;
+  document.getElementById('titleText').innerHTML = gameName;
+  document.getElementById('modeChip').textContent = (category==='card'?'CODE':'UID');
+  document.getElementById('modeChip').className = 'chip ' + (category==='card'?'chip-code':'chip-uid');
+  if (regionKey) { const rb=document.getElementById('regionBadge'); rb.style.display='inline-flex'; rb.textContent = 'Region: ' + regionKey; }
+  if (needsUID) document.getElementById('uidField').style.display = 'block';
 
-    // --- Page Setup ---
-    document.getElementById('crumbGame').textContent = gameName;
-    document.getElementById('titleText').innerHTML = `${gameName} ${regionKey ? `<span class="badge">${regionKey}</span>` : ''}`;
-    if (needsUID) document.getElementById('uidField').style.display = 'block';
+  // Load a representative image for header (first package fetch not needed)
+  (async ()=>{
+    try{
+      const r = await fetch(`${API_BASE_URL}/games`);
+      const games = await r.json();
+      const g = games.find(x=>String(x.id)===String(gameId));
+      if (g) document.getElementById('gameImg').src = g.image_url;
+    }catch{}
+  })();
 
-    // --- Data Loading ---
-    async function loadPackages() {
-        const pkgGrid = document.getElementById('pkgGrid');
-        try {
-            const response = await fetch(`${API_BASE_URL}/packages?gameId=${gameId}&regionKey=${regionKey || ''}`);
-            const packages = await response.json();
+  let selectedPackage=null;
+  const qtyEl = document.getElementById('qtyInput');
 
-            if (packages.length > 0) {
-                pkgGrid.innerHTML = packages.map(pkg => `
-                    <div class="pkg" onclick='selectPackage(this, ${JSON.stringify(pkg)})'>
-                        <strong>${pkg.label}</strong>
-                        <div>${pkg.price.toFixed(2)} MYR</div>
-                    </div>
-                `).join('');
-            } else {
-                pkgGrid.innerHTML = '<p class="muted">No packages are available for this game/region yet.</p>';
-            }
-        } catch (error) {
-            console.error('Error loading packages:', error);
-            pkgGrid.innerHTML = '<p class="muted">Could not load packages.</p>';
-        }
+  async function loadPackages(){
+    const grid = document.getElementById('pkgGrid');
+    try{
+      const r = await fetch(`${API_BASE_URL}/packages?gameId=${gameId}&regionKey=${regionKey||''}`);
+      const pkgs = await r.json();
+      if (pkgs.length>0){
+        grid.innerHTML = pkgs.map(pkg=>`
+          <div class="pkg" onclick='selectPackage(this, ${JSON.stringify(pkg).replace(/'/g,"&apos;")})'>
+            <strong>${pkg.label}</strong>
+            <div>${Number(pkg.price).toFixed(2)} MYR</div>
+          </div>
+        `).join('');
+      }else{
+        grid.innerHTML = '<p class="muted">No packages are available for this selection yet.</p>';
+      }
+    }catch(e){
+      console.error(e);
+      grid.innerHTML = '<p class="muted">Could not load packages.</p>';
     }
+  }
 
-    // --- UI Interaction ---
-    function selectPackage(element, pkg) {
-        document.querySelectorAll('.pkg.active').forEach(el => el.classList.remove('active'));
-        element.classList.add('active');
-        selectedPackage = pkg;
-        updateTotal();
+  function selectPackage(el,pkg){
+    document.querySelectorAll('.pkg.active').forEach(x=>x.classList.remove('active'));
+    el.classList.add('active'); selectedPackage=pkg; updateTotal();
+  }
+  function updateTotal(){
+    const q = parseInt(qtyEl.value)||1;
+    const p = selectedPackage?Number(selectedPackage.price):0;
+    document.getElementById('totalPrice').textContent = (p*q).toFixed(2)+' MYR';
+  }
+  document.getElementById('qMinus').onclick=()=>{ qtyEl.value=Math.max(1,(parseInt(qtyEl.value)||1)-1); updateTotal(); };
+  document.getElementById('qPlus').onclick =()=>{ qtyEl.value=(parseInt(qtyEl.value)||1)+1; updateTotal(); };
+  qtyEl.oninput = updateTotal;
+
+  function handlePurchase(isBuyNow){
+    if(!selectedPackage) return alert('Please select a package.');
+    if(needsUID && !document.getElementById('uidInput').value.trim()) return alert('Please enter your User ID.');
+
+    const item = {
+      key: Date.now().toString(36),
+      gameName: gameName,
+      pkgLabel: selectedPackage.label,
+      price: Number(selectedPackage.price),
+      qty: parseInt(qtyEl.value)||1,
+      uid: needsUID ? document.getElementById('uidInput').value.trim() : null
+    };
+
+    if(isBuyNow){
+      if(!user){ alert('Please login to buy now.'); location.href=`login.html?r=${encodeURIComponent(location.href)}`; return; }
+      Store.write('lf_pending',[item]);
+      location.href='checkout.html?mode=pending';
+    }else{
+      const cart = Store.read('lf_cart',[]);
+      cart.push(item); Store.write('lf_cart',cart);
+      alert(`'${item.pkgLabel}' has been added to your cart.`);
+      refreshNavbar();
     }
-    
-    function updateTotal() {
-        const quantity = parseInt(qtyEl.value) || 1;
-        const price = selectedPackage ? selectedPackage.price : 0;
-        document.getElementById('totalPrice').textContent = (price * quantity).toFixed(2) + ' MYR';
-    }
+  }
 
-    document.getElementById('qMinus').onclick = () => { qtyEl.value = Math.max(1, (parseInt(qtyEl.value) || 1) - 1); updateTotal(); };
-    document.getElementById('qPlus').onclick = () => { qtyEl.value = (parseInt(qtyEl.value) || 1) + 1; updateTotal(); };
-    qtyEl.oninput = updateTotal;
+  document.getElementById('addCart').onclick = ()=>handlePurchase(false);
+  document.getElementById('buyNow').onclick  = ()=>handlePurchase(true);
 
-    // --- Purchase Logic ---
-    function handlePurchase(isBuyNow) {
-        if (!selectedPackage) {
-            return alert('Please select a package.');
-        }
-        if (needsUID && !document.getElementById('uidInput').value.trim()) {
-            return alert('Please enter your User ID.');
-        }
-
-        const item = {
-            key: Date.now().toString(36), // Unique key for cart management
-            gameName: gameName,
-            pkgLabel: selectedPackage.label,
-            price: selectedPackage.price,
-            qty: parseInt(qtyEl.value) || 1,
-            uid: needsUID ? document.getElementById('uidInput').value.trim() : null
-        };
-
-        if (isBuyNow) {
-            if (!user) {
-                alert('Please login to buy now.');
-                // Redirect to login, but tell it to come back here after
-                location.href = `login.html?r=${encodeURIComponent(location.href)}`;
-                return;
-            }
-            Store.write('lf_pending', [item]); // Store item for checkout page
-            location.href = 'checkout.html?mode=pending';
-        } else {
-            const cart = Store.read('lf_cart', []);
-            cart.push(item);
-            Store.write('lf_cart', cart);
-            alert(`'${item.pkgLabel}' has been added to your cart.`);
-            refreshNavbar(); // Update cart count
-        }
-    }
-
-    document.getElementById('addCart').onclick = () => handlePurchase(false);
-    document.getElementById('buyNow').onclick = () => handlePurchase(true);
-    
-    // --- Initial Load ---
-    document.addEventListener('DOMContentLoaded', () => {
-        refreshNavbar();
-        loadPackages();
-    });
+  document.addEventListener('DOMContentLoaded', ()=>{
+    refreshNavbar();
+    loadPackages();
+  });
 </script>
 </body>
 </html>
