@@ -25,18 +25,18 @@
     .section-header { font-size: 1.5rem; margin-bottom: 10px; border-bottom: 2px solid #f0f0f0; padding-bottom: 5px; }
     .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 
-    /* Order details expander */
     .order-items { background:#fafafa; border:1px dashed var(--border); border-radius:8px; padding:10px; margin:8px 0 0; }
     .order-items h4 { margin:2px 0 8px; }
     .pin-row { display:flex; gap:6px; align-items:center; }
     .pin-row input { width: 260px; }
     .muted { opacity: .65; }
 
-    /* mini pills */
     .pill-s { display:inline-block; padding:3px 8px; border-radius:999px; border:1px solid var(--border); font-size:.8rem; }
     .status-Processing { background:#fff8e6; border-color:#f3d27a; }
     .status-Completed { background:#eaf8ef; border-color:#9bd4b0; }
-    .status-Cancelled, .status-Refunded { background:#fde8e8; border-color:#f3b1b1; }
+    .status-Cancelled { background:#fde8e8; border-color:#f3b1b1; }
+    .status-Refunded { background:#e9f2ff; border-color:#b7d2ff; }
+    .btn[disabled], .btn.ghost[disabled] { opacity:.5; pointer-events:none; }
   </style>
 </head>
 <body>
@@ -399,6 +399,11 @@ async function loadOrders(){
         </tr>
       </thead><tbody>`;
     for (const o of orders) {
+      const isProcessing = o.status === 'Processing';
+      const isCancelled  = o.status === 'Cancelled';
+      const isCompleted  = o.status === 'Completed';
+      const isRefunded   = o.status === 'Refunded';
+
       html += `<tr id="row-${o.id}">
         <td><strong>${o.id}</strong></td>
         <td>${o.user_email}</td>
@@ -408,9 +413,9 @@ async function loadOrders(){
         <td>${o.created_at}</td>
         <td>
           <button class="btn ghost" onclick="toggleOrder('${o.id}')">View</button>
-          <button class="btn" onclick="completeOrder('${o.id}')">Complete</button>
-          <button class="btn ghost" onclick="cancelOrder('${o.id}')">Cancel</button>
-          <button class="btn danger" onclick="refundOrder('${o.id}')">Refund</button>
+          <button class="btn"      onclick="completeOrder('${o.id}')" ${(!isProcessing)?'disabled':''}>Complete</button>
+          <button class="btn ghost" onclick="cancelOrder('${o.id}')"   ${(!isProcessing)?'disabled':''}>Cancel</button>
+          <button class="btn danger" onclick="refundOrder('${o.id}')"  ${(!isCancelled)?'disabled':''}>Refund</button>
         </td>
       </tr>
       <tr id="items-${o.id}" class="hidden"><td colspan="7"><div class="order-items" id="itemsBox-${o.id}">Loading items…</div></td></tr>`;
@@ -478,9 +483,9 @@ window.savePin = async (orderId, itemId) => {
 };
 
 async function changeStatus(orderId, endpoint, successMsg){
-  const btnRow = document.querySelector(`#row-${orderId} td:last-child`);
-  const old = btnRow.innerHTML;
-  btnRow.innerHTML = '<span class="muted">Processing…</span>';
+  const btnCell = document.querySelector(`#row-${orderId} td:last-child`);
+  const old = btnCell.innerHTML;
+  btnCell.innerHTML = '<span class="muted">Processing…</span>';
   try {
     const res = await fetch(`${API_BASE_URL}${endpoint}`, {
       method:'POST',
@@ -493,15 +498,16 @@ async function changeStatus(orderId, endpoint, successMsg){
     loadOrders(); // refresh table
   } catch(e) {
     alert(e.message || 'Action failed.');
-    btnRow.innerHTML = old;
+    btnCell.innerHTML = old;
   }
 }
 
 window.completeOrder = (orderId)=> changeStatus(orderId, '/admin/order/complete', 'Order marked as Completed.');
-window.cancelOrder   = (orderId)=> changeStatus(orderId, '/admin/order/cancel',   'Order cancelled & refunded (if not already).');
-window.refundOrder   = (orderId)=> changeStatus(orderId, '/admin/order/refund',   'Order refunded (if not already).');
+// CANCEL: now only marks as Cancelled (no refund)
+window.cancelOrder   = (orderId)=> changeStatus(orderId, '/admin/order/cancel',   'Order marked as Cancelled.');
+// REFUND: credits wallet and flips status to Refunded
+window.refundOrder   = (orderId)=> changeStatus(orderId, '/admin/order/refund',   'Order refunded.');
 
-// Auto-login if session active
 if (sessionStorage.getItem('isAdmin') === 'true') showAdminPanel();
 </script>
 </body>
