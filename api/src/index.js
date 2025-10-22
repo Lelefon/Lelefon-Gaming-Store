@@ -1,45 +1,27 @@
-// List of domains that are allowed to access the API
-const ALLOWED_ORIGINS = [
-  'https://lelefon.gaming.com',
-  'https://www.lelefon.gaming.com'
-];
-
-/**
- * A function to handle CORS headers. It checks if the request's origin
- * is in our allowed list and returns the appropriate headers.
- */
-function handleCors(request) {
-  const origin = request.headers.get('Origin');
-  const headers = {
-    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
-  };
-
-  if (origin && ALLOWED_ORIGINS.includes(origin)) {
-    headers['Access-Control-Allow-Origin'] = origin;
-  }
-  
-  return headers;
-}
-
 export default {
   async fetch(request, env) {
-    // Handle CORS preflight requests first
+    // Define the CORS headers that will be attached to every response.
+    const corsHeaders = {
+      'Access-Control-Allow-Origin': 'https://lelefon.gaming.com',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
+      'Access-Control-Allow-Credentials': 'true' // Sometimes needed, good to have.
+    };
+
+    // Handle the special CORS preflight "OPTIONS" request.
     if (request.method === 'OPTIONS') {
-      return new Response(null, { headers: handleCors(request) });
+      return new Response(null, { headers: corsHeaders });
     }
 
     const url = new URL(request.url);
     let response;
 
     try {
-      // --- AUTH ---
+      // --- ALL YOUR API LOGIC GOES HERE (No changes needed) ---
       if (url.pathname === '/api/register' && request.method === 'POST') {
         response = await handleRegister(request, env);
       } else if (url.pathname === '/api/login' && request.method === 'POST') {
         response = await handleLogin(request, env);
-      
-      // --- DATA FETCHING (PUBLIC) ---
       } else if (url.pathname === '/api/games' && request.method === 'GET') {
         const games = await env.DB.prepare('SELECT * FROM games').all();
         response = Response.json(games.results);
@@ -55,8 +37,6 @@ export default {
         if (regionKey && regionKey !== 'null') { query += ' AND region_key = ?'; params.push(regionKey); }
         const pkgs = await env.DB.prepare(query).bind(...params).all();
         response = Response.json(pkgs.results);
-
-      // --- USER ACTIONS ---
       } else if (url.pathname === '/api/wallet' && request.method === 'GET') {
         const email = url.searchParams.get('email');
         const wallet = await env.DB.prepare('SELECT balance FROM wallets WHERE user_email = ?').bind(email).first();
@@ -69,8 +49,6 @@ export default {
          const email = url.searchParams.get('email');
          const orders = await env.DB.prepare('SELECT * FROM orders WHERE user_email = ? ORDER BY created_at DESC').bind(email).all();
          response = Response.json(orders.results);
-      
-      // --- ADMIN ACTIONS ---
       } else if (url.pathname === '/api/admin/game' && request.method === 'POST') {
         const data = await request.json();
         await env.DB.prepare('INSERT OR REPLACE INTO games (id, name, image_url, category, regionable, uid_required) VALUES (?, ?, ?, ?, ?, ?)')
@@ -98,18 +76,17 @@ export default {
       response = Response.json({ success: false, message: e.message }, { status: 500 });
     }
 
-    // Attach CORS headers to the final response
-    const finalHeaders = new Headers(response.headers);
-    const corsHeaders = handleCors(request);
+    // Create a new response with the original body and status, but add the CORS headers.
+    const finalResponse = new Response(response.body, response);
     for (const [key, value] of Object.entries(corsHeaders)) {
-      finalHeaders.set(key, value);
+        finalResponse.headers.set(key, value);
     }
-
-    return new Response(response.body, { status: response.status, headers: finalHeaders });
+    
+    return finalResponse;
   },
 };
 
-// --- Helper functions ---
+// --- Helper functions (These do not need to change) ---
 
 async function handleRegister(req, env) {
   const { email, password } = await req.json();
