@@ -4,8 +4,6 @@
 
 /**
  * ADMIN login
- * - Used by admin.html only
- * - Requires role === 'admin'
  */
 async function handleAdminLogin(request, env) {
   const { email, password } = await request.json();
@@ -32,9 +30,7 @@ async function handleAdminLogin(request, env) {
 }
 
 /**
- * USER login
- * - Local users: compare Base64(password)
- * - Google users: pass provider:'google' (no password check, hash is 'GOOGLE_SSO')
+ * USER login (local + google)
  */
 async function handleUserLogin(request, env) {
   const { email, password, provider } = await request.json();
@@ -63,10 +59,8 @@ async function handleUserLogin(request, env) {
 }
 
 /**
- * Registration for both:
- * - Local signup (provider:'local', requires password)
- * - Google SSO (provider:'google', no password)
- * Ensures user + wallet rows (idempotent).
+ * Registration (local + google)
+ * Ensures users + wallets rows exist (idempotent).
  */
 async function handleRegister(request, env) {
   const { email, password, provider } = await request.json();
@@ -91,14 +85,125 @@ async function handleRegister(request, env) {
   }
 }
 
+/**
+ * (Optional) Top up helper
+ */
 async function handleTopup(request, env) {
-  return Response.json({ message: 'Top-up endpoint not implemented.' }, { status: 501 });
+  const { email, amount } = await request.json();
+  if (!email || typeof amount !== 'number' || !isFinite(amount) || amount <= 0) {
+    return Response.json({ success: false, message: 'Valid email and amount are required.' }, { status: 400 });
+  }
+  const norm = email.toLowerCase();
+
+  // Ensure wallet row exists
+  await env.DB.prepare('INSERT OR IGNORE INTO wallets (user_email, balance) VALUES (?, 0)').bind(norm).run();
+
+  await env.DB.prepare('UPDATE wallets SET balance = balance + ? WHERE user_email = ?').bind(amount, norm).run();
+  const row = await env.DB.prepare('SELECT balance FROM wallets WHERE user_email = ?').bind(norm).first();
+
+  return Response.json({ success: true, balance: row?.balance ?? 0 });
 }
 
+/**
+ * Create order (wallet or simulated iPay88)
+ */
 async function handleCreateOrder(request, env) {
-  return Response.json({ message: 'Order creation endpoint not implemented.' }, { status: 501 });
-}
+  const { user_email, items, total, method } = await request.json();
 
+  if (!user_email || !Array.isArray(items) || items.length === 0 || typeof total !== 'number') {
+    return Response.json({ success: false, message: 'Invalid order payload.' }, { status: 400 });
+  }
+
+  const email = user_email.toLowerCase();
+  const orderId = `ORD-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+  const methodStr = String(method || '').trim();
+  const isWallet = methodStr.toLowerCase().includes('wallet'); // matches "wallet" or "LF Wallet"
+
+  try {
+    // Ensure wallet row exists for all users (even if paying iPay88)
+    await env.DB.prepare('INSERT OR IGNORE INTO wallets (user_email, balance) VALUES (?, 0)').bind(email).run();
+
+    let status = 'Pending Payment';
+    let newBalance = null;
+
+    if (isWallet) {
+      const wallet = await env.DB.prepare('SELECT balance FROM wallets WHERE user_email = ?').bind(email).first();
+      const balance = wallet ? Number(wallet.balance) : 0;
+
+      if (balance < total) {
+        return Response.json({ success: false, message: 'Insufficient wallet balance.' }, { status: 400 });
+      }
+
+      // Deduct wallet & mark as paid/processing
+      newBalance = balance - total;
+      status = 'Processing';
+
+      // Order insert + items + wallet deduction
+      const stmts = [
+        env.DB.prepare(
+          'INSERT INTO orders (id, user_email, total, payment_method, status) VALUES (?, ?, ?, ?, ?)'
+        ).bind(orderId, email, total, 'LF Wallet', status),
+        env.DB.prepare('UPDATE wallets SET balance = ? WHERE user_email = ?').bind(newBalance, email)
+      ];
+
+      for (const it of items) {
+        stmts.push(
+          env.DB.prepare(
+            'INSERT INTO order_items (order_id, game_name, package_label, quantity, price_at_purchase, uid, pin) VALUES (?, ?, ?, ?, ?, ?, ?)'
+          ).bind(
+            orderId,
+            it.gameName || '',
+            it.pkgLabel || '',
+            Number(it.qty || 1),
+            Number(it.price || 0),
+            it.uid || null,
+            it.pin || null
+          )
+        );
+      }
+
+      await env.DB.batch(stmts);
+      return Response.json({ success: true, orderId, balance: newBalance });
+    }
+
+    // Simulated iPay88: don’t touch wallet; mark as Pending Payment
+    const stmts = [
+      env.DB.prepare(
+        'INSERT INTO orders (id, user_email, total, payment_method, status) VALUES (?, ?, ?, ?, ?)'
+      ).bind(orderId, email, total, 'iPay88', status)
+    ];
+    for (const it of items) {
+      stmts.push(
+        env.DB.prepare(
+          'INSERT INTO order_items (order_id, game_name, package_label, quantity, price_at_purchase, uid, pin) VALUES (?, ?, ?, ?, ?, ?, ?)'
+        ).bind(
+          orderId,
+          it.gameName || '',
+          it.pkgLabel || '',
+          Number(it.qty || 1),
+          Number(it.price || 0),
+          it.uid || null,
+          it.pin || null
+        )
+      );
+    }
+    await env.DB.batch(stmts);
+
+    // In a real integration you would now return the payment URL/session
+    return Response.json({
+      success: true,
+      orderId,
+      payment: {
+        provider: 'iPay88',
+        simulated: true,
+        message: 'Redirect to iPay88 would happen here.'
+      }
+    });
+  } catch (err) {
+    console.error('CREATE ORDER ERROR:', err);
+    return Response.json({ success: false, message: 'Failed to create order.' }, { status: 500 });
+  }
+}
 
 // =========================
 //  Main fetch router
@@ -175,6 +280,8 @@ export default {
       // ----- Wallet / Orders -----
       } else if (url.pathname === '/api/wallet' && request.method === 'GET') {
         const email = (url.searchParams.get('email') || '').toLowerCase();
+        // Ensure wallet row exists so the UI always gets a number
+        await env.DB.prepare('INSERT OR IGNORE INTO wallets (user_email, balance) VALUES (?, 0)').bind(email).run();
         const wallet = await env.DB.prepare('SELECT balance FROM wallets WHERE user_email = ?').bind(email).first();
         response = Response.json({ balance: wallet ? wallet.balance : 0 });
 
@@ -214,21 +321,6 @@ export default {
         ).run();
         response = Response.json({ success: true });
 
-      // NEW: delete a game (+ its regions & packages)
-      } else if (url.pathname === '/api/admin/game' && request.method === 'DELETE') {
-        const id = url.searchParams.get('id');
-        if (!id) {
-          response = Response.json({ success: false, message: 'Missing id' }, { status: 400 });
-        } else {
-          // Do explicit deletes to be safe even if FK cascade is off.
-          await env.DB.batch([
-            env.DB.prepare('DELETE FROM packages WHERE game_id = ?').bind(id),
-            env.DB.prepare('DELETE FROM regions WHERE game_id = ?').bind(id),
-            env.DB.prepare('DELETE FROM games WHERE id = ?').bind(id),
-          ]);
-          response = Response.json({ success: true });
-        }
-
       } else if (url.pathname === '/api/admin/region' && request.method === 'POST') {
         const data = await request.json();
         await env.DB.prepare(
@@ -248,6 +340,20 @@ export default {
         const id = url.searchParams.get('id');
         await env.DB.prepare('DELETE FROM packages WHERE id = ?').bind(id).run();
         response = Response.json({ success: true });
+
+      // (Optional) Delete a game and its children
+      } else if (url.pathname === '/api/admin/game' && request.method === 'DELETE') {
+        const id = url.searchParams.get('id');
+        if (!id) {
+          response = Response.json({ success: false, message: 'Missing id' }, { status: 400 });
+        } else {
+          await env.DB.batch([
+            env.DB.prepare('DELETE FROM packages WHERE game_id = ?').bind(id),
+            env.DB.prepare('DELETE FROM regions  WHERE game_id = ?').bind(id),
+            env.DB.prepare('DELETE FROM games    WHERE id = ?').bind(id),
+          ]);
+          response = Response.json({ success: true });
+        }
 
       } else {
         response = new Response('Not Found', { status: 404 });

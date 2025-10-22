@@ -14,6 +14,7 @@
   .stage{display:flex;gap:12px;margin:6px 0 14px}
   .stage div{padding:6px 10px;border-radius:999px;border:1px solid #e6e6e6}
   .stage .on{background:#111;color:#fff;border-color:#111}
+
   .sum-row{display:flex;justify-content:space-between;border-bottom:1px dashed #eee;padding:8px 4px}
   .total{display:flex;justify-content:space-between;font-weight:800;margin-top:10px}
 
@@ -27,7 +28,7 @@
 
   .muted{opacity:.66}
 
-  /* Fake iPay88 redirect overlay */
+  /* Simulated iPay88 modal */
   .overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:9999}
   .overlay .panel{width:min(520px,92vw);background:#fff;border-radius:16px;padding:18px;box-shadow:0 10px 40px rgba(0,0,0,.25)}
   .loader{width:22px;height:22px;border-radius:50%;border:3px solid #ddd;border-top-color:#111;animation:spin 1s linear infinite;margin-right:8px}
@@ -63,7 +64,7 @@
       <h3>Payment Methods</h3>
 
       <!-- LF WALLET -->
-      <label id="pmWallet" class="pay-choice active" data-method="wallet">
+      <label id="pmWallet" class="pay-choice active" data-method="wallet" aria-label="LF Wallet">
         <input type="radio" name="pm" checked/>
         <div>
           <div><strong>LF Wallet</strong> — Balance <strong id="bal">0.00 MYR</strong></div>
@@ -72,14 +73,14 @@
       </label>
 
       <!-- iPay88 (SIMULATED) -->
-      <label id="pmIpay" class="pay-choice" data-method="ipay88">
+      <label id="pmIpay" class="pay-choice" data-method="ipay88" aria-label="iPay88">
         <input type="radio" name="pm"/>
         <div>
           <div><strong>iPay88</strong> — FPX / eWallet / Cards</div>
           <div class="muted" style="margin-top:2px">Simulated now — real gateway can be attached later.</div>
         </div>
       </label>
-      <div id="ipayExtra" class="pm-extra">
+      <div id="ipayExtra" class="pm-extra" aria-live="polite">
         <label class="muted" style="display:block;margin-bottom:6px">Choose a bank / wallet</label>
         <select id="ipayChannel" class="bank-select">
           <option value="fpx">FPX (Online Banking)</option>
@@ -100,10 +101,10 @@
 </main>
 
 <!-- Simulated iPay88 redirect overlay -->
-<div id="redirectOverlay" class="overlay">
+<div id="redirectOverlay" class="overlay" role="dialog" aria-modal="true" aria-label="Connecting to iPay88">
   <div class="panel">
     <div style="display:flex;align-items:center">
-      <div class="loader"></div>
+      <div class="loader" aria-hidden="true"></div>
       <div>
         <div style="font-weight:800">Connecting to iPay88…</div>
         <div class="muted" id="redirMsg">Please wait while we redirect you to your selected channel.</div>
@@ -119,10 +120,11 @@
   // ---- Auth / navbar ----
   const user = Store.read('lf_user');
   if (!user) { alert('Please login to continue.'); location.href = `login.html?r=checkout.html`; }
-  const cart = Store.read('lf_cart', []);
-  const pending = Store.read('lf_pending', []);
+
+  const cartLS = Store.read('lf_cart', []);
+  const pendingLS = Store.read('lf_pending', []);
   const mode = new URLSearchParams(location.search).get('mode'); // 'cart' or 'pending'
-  const items = (mode === 'pending') ? pending : cart;
+  const items = (mode === 'pending') ? pendingLS : cartLS;
 
   const summaryEl = document.getElementById('summary');
   const payableEl = document.getElementById('payable');
@@ -134,12 +136,12 @@
 
   function refreshNavbarBasics(){
     document.getElementById('authArea').innerHTML = `<span class="pill">Hi, ${user.email}</span>`;
-    cartCount.textContent = cart.reduce((s,i)=>s+(i.qty||1),0);
+    cartCount.textContent = cartLS.reduce((s,i)=>s+(i.qty||1),0);
   }
 
   async function loadWallet() {
     try {
-      const res = await fetch(`${API_BASE_URL}/wallet?email=${user.email}`);
+      const res = await fetch(`${API_BASE_URL}/wallet?email=${encodeURIComponent(user.email)}`);
       const data = await res.json();
       balanceEl.textContent = data.balance.toFixed(2) + ' MYR';
       walletPillAmt.textContent = data.balance.toFixed(2);
@@ -194,8 +196,13 @@
       body: JSON.stringify(payload)
     });
     const result = await response.json();
-    if (!response.ok) throw new Error(result.message || 'Order failed.');
+    if (!response.ok || !result.success) throw new Error(result.message || 'Order failed.');
     return result;
+  }
+
+  function clearLocalAfterPay(){
+    if (mode === 'pending') Store.write('lf_pending', []);
+    else Store.write('lf_cart', []);
   }
 
   payBtn.onclick = async () => {
@@ -205,7 +212,7 @@
 
     try{
       if (selectedMethod === 'wallet'){
-        // Wallet flow (as before)
+        // Wallet flow
         const result = await createOrder({
           user_email: user.email,
           items,
@@ -214,7 +221,9 @@
         });
 
         alert(`Payment successful! Your Order ID is ${result.orderId}`);
-        if (mode === 'pending') { Store.write('lf_pending', []); } else { Store.write('lf_cart', []); }
+        clearLocalAfterPay();
+        // keep UX snappy by updating pill if balance returned
+        if (typeof result.balance === 'number') walletPillAmt.textContent = result.balance.toFixed(2);
         location.href = 'transaction.html';
         return;
       }
@@ -224,12 +233,10 @@
       redirMsg.textContent = 'Please wait while we redirect you to your selected channel.';
       const channel = document.getElementById('ipayChannel').value;
 
-      // Fake “redirect time”
+      // Simulated “redirect + confirmation”
       await new Promise(r => setTimeout(r, 1400));
       redirMsg.textContent = 'Awaiting bank / wallet confirmation…';
       await new Promise(r => setTimeout(r, 1800));
-
-      // Simulate SUCCESS return from iPay88
       overlay.style.display = 'none';
 
       const result = await createOrder({
@@ -241,11 +248,16 @@
       });
 
       alert(`Payment successful via iPay88! Order ID: ${result.orderId}`);
-      if (mode === 'pending') { Store.write('lf_pending', []); } else { Store.write('lf_cart', []); }
+      clearLocalAfterPay();
       location.href = 'transaction.html';
     }catch(err){
       overlay.style.display = 'none';
-      alert(`Error: ${err.message}`);
+      // Show clearer message for insufficient balance
+      if (String(err.message).toLowerCase().includes('insufficient')) {
+        alert('Insufficient wallet balance. Please top up your LF Wallet or choose iPay88.');
+      } else {
+        alert(`Error: ${err.message}`);
+      }
       payBtn.disabled = false; payBtn.textContent = 'Pay Now';
     }
   };
