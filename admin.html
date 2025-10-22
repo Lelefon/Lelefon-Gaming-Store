@@ -40,26 +40,25 @@
   </header>
 
   <main class="wrap">
-<!-- Admin Login Form -->
-<div id="adminLogin">
-  <div class="card">
-    <div class="title">Admin Login</div>
-    <!-- This form has NO onsubmit attribute. We will attach the event in JavaScript. -->
-    <form>
-      <div class="form-group">
-        <label>Email</label>
-        <input id="adminUser" type="email" placeholder="admin@email.com" required>
+    <!-- Admin Login Form -->
+    <div id="adminLogin">
+      <div class="card">
+        <div class="title">Admin Login</div>
+        <form>
+          <div class="form-group">
+            <label>Email</label>
+            <input id="adminUser" type="email" placeholder="admin@email.com" required>
+          </div>
+          <div class="form-group">
+            <label>Password</label>
+            <input id="adminPass" type="password" placeholder="••••••••" required>
+          </div>
+          <div class="btn-row">
+            <button id="doAdminLogin" type="submit" class="btn primary">Login</button>
+          </div>
+        </form>
       </div>
-      <div class="form-group">
-        <label>Password</label>
-        <input id="adminPass" type="password" placeholder="••••••••" required>
-      </div>
-      <div class="btn-row">
-        <button id="doAdminLogin" type="submit" class="btn primary">Login</button>
-      </div>
-    </form>
-  </div>
-</div>
+    </div>
 
     <!-- Admin Content Panel -->
     <div id="adminContent" class="hidden">
@@ -101,6 +100,11 @@
         <div id="orderList"><p class="muted">Loading recent orders...</p></div>
       </section>
 
+      <section class="card">
+        <h3 class="section-header">User & Wallet Management</h3>
+        <div id="userList"><p class="muted">Loading users...</p></div>
+      </section>
+
       <div class="admin-controls">
         <button id="logoutAdmin" class="btn ghost">Logout</button>
       </div>
@@ -120,9 +124,7 @@ const logoutAdminBtn = document.getElementById('logoutAdmin');
 
 // LOGIN HANDLER
 async function handleAdminLogin(event) {
-  // Prevent the form from submitting in the traditional way
-  if (event) event.preventDefault();
-
+  event.preventDefault();
   const email = document.getElementById('adminUser').value.trim();
   const password = document.getElementById('adminPass').value.trim();
   if (!email || !password) return alert('Please fill in both fields.');
@@ -133,23 +135,21 @@ async function handleAdminLogin(event) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password })
     });
+    if (!response.ok) throw new Error(`Server responded with status: ${response.status}`);
     const result = await response.json();
-
-    if (response.ok && result.role === 'admin') {
+    if (result.role === 'admin') {
       sessionStorage.setItem('isAdmin', 'true');
       showAdminPanel();
     } else {
       alert(result.message || 'Invalid admin credentials.');
     }
   } catch (err) {
-    console.error('Login failed:', err); // Log the actual error for debugging
-    alert('Login failed. Please check server connection.');
+    console.error('Login failed:', err);
+    alert('Login failed. The server might be down or an error occurred.');
   }
 }
 
-// Attach the login handler to the form's submit event
 document.querySelector('#adminLogin form').addEventListener('submit', handleAdminLogin);
-
 
 // Logout
 logoutAdminBtn.addEventListener('click', () => {
@@ -165,23 +165,76 @@ function showAdminPanel() {
   adminContentEl.classList.remove('hidden');
   authAreaEl.innerHTML = `<span class="pill">Admin Logged In</span>`;
   loadGames();
-  // Consider loading orders here as well
-  // loadOrders(); 
+  loadUsers();
 }
 
 // Load games
 async function loadGames() {
   try {
     const response = await fetch(`${API_BASE_URL}/games`);
-    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
     ALL_GAMES = await response.json();
     gameSelectEl.innerHTML = '<option value="">-- Select a Game --</option>' +
       ALL_GAMES.map(g => `<option value="${g.id}">${g.name}</option>`).join('');
   } catch (e) {
     console.error('Failed to load games', e);
-    // Optionally display an error to the user in the UI
   }
 }
+
+// Load Users & Wallets
+async function loadUsers() {
+  const userListEl = document.getElementById('userList');
+  try {
+    const response = await fetch(`${API_BASE_URL}/admin/users`);
+    if (!response.ok) throw new Error('Failed to fetch users.');
+    const users = await response.json();
+
+    if (users.length) {
+      let tableHtml = `<table class="table">
+        <thead><tr><th>Email</th><th>Role</th><th>Balance (MYR)</th><th>Actions</th></tr></thead>
+        <tbody>`;
+      for (const user of users) {
+        tableHtml += `
+          <tr>
+            <td>${user.email}</td>
+            <td>${user.role}</td>
+            <td>${(user.balance || 0).toFixed(2)}</td>
+            <td>
+              <button class="btn ghost" onclick="editWallet('${user.email}')">Set Balance</button>
+            </td>
+          </tr>`;
+      }
+      tableHtml += '</tbody></table>';
+      userListEl.innerHTML = tableHtml;
+    } else {
+      userListEl.innerHTML = '<p>No users found.</p>';
+    }
+  } catch (err) {
+    console.error('Failed to load users:', err);
+    userListEl.innerHTML = '<p class="danger">Could not load user data.</p>';
+  }
+}
+
+window.editWallet = async (email) => {
+  const currentBalance = prompt(`Enter new balance for ${email}:`, '0.00');
+  if (currentBalance === null) return; // User cancelled
+
+  const newBalance = parseFloat(currentBalance);
+  if (isNaN(newBalance)) return alert('Invalid number provided.');
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/admin/wallet`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, newBalance })
+    });
+    if (!response.ok) throw new Error('Server rejected the update.');
+    alert('Wallet updated successfully!');
+    loadUsers(); // Refresh the user list to show the new balance
+  } catch (err) {
+    console.error('Failed to update wallet:', err);
+    alert('An error occurred while updating the wallet.');
+  }
+};
 
 // Save game
 document.getElementById('saveGameBtn').addEventListener('click', async () => {
@@ -195,19 +248,13 @@ document.getElementById('saveGameBtn').addEventListener('click', async () => {
   };
   if (!gameData.id || !gameData.name) return alert('Game ID and Name are required.');
 
-  try {
-    const response = await fetch(`${API_BASE_URL}/admin/game`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(gameData)
-    });
-    if (!response.ok) throw new Error('Failed to save game');
-    alert('Game saved successfully!');
-    loadGames(); // Refresh the game list
-  } catch (err) {
-    console.error('Save game error:', err);
-    alert('Error saving game.');
-  }
+  await fetch(`${API_BASE_URL}/admin/game`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(gameData)
+  });
+  alert('Game saved successfully!');
+  loadGames();
 });
 
 // Packages & Regions
@@ -215,14 +262,12 @@ gameSelectEl.addEventListener('change', async e => {
   const gameId = e.target.value;
   const game = ALL_GAMES.find(g => g.id === gameId);
   const regionArea = document.getElementById('regionArea');
-  const packageListEl = document.getElementById('packageList');
 
   if (!game) {
     regionArea.classList.add('hidden');
-    packageListEl.innerHTML = '<p>Select a game to see packages.</p>';
+    document.getElementById('packageList').innerHTML = '<p>Select a game to see packages.</p>';
     return;
   }
-
   if (game.regionable) {
     regionArea.classList.remove('hidden');
     await loadRegionsForGame(gameId);
@@ -233,74 +278,50 @@ gameSelectEl.addEventListener('change', async e => {
 });
 
 async function loadRegionsForGame(gameId) {
-  try {
-    const res = await fetch(`${API_BASE_URL}/regions?gameId=${gameId}`);
-    if (!res.ok) throw new Error('Failed to fetch regions');
-    const regions = await res.json();
-    const regionSelectEl = document.getElementById('regionSelect');
-    
-    regionSelectEl.innerHTML = regions.map(r => `<option value="${r.region_key}">${r.name}</option>`).join('');
-    
-    // Automatically load packages for the first region if it exists
-    if (regions.length > 0) {
-      loadPackagesForGame(gameId, regions[0].region_key);
-    } else {
-      document.getElementById('packageList').innerHTML = '<p>No regions found for this game. Please add one.</p>';
-    }
-
-    // Update packages when a new region is selected
-    regionSelectEl.onchange = () => loadPackagesForGame(gameId, regionSelectEl.value);
-  } catch(err) {
-    console.error('Error loading regions:', err);
-  }
+  const res = await fetch(`${API_BASE_URL}/regions?gameId=${gameId}`);
+  const regions = await res.json();
+  const regionSelectEl = document.getElementById('regionSelect');
+  regionSelectEl.innerHTML = regions.map(r => `<option value="${r.region_key}">${r.name}</option>`).join('');
+  if (regions.length) loadPackagesForGame(gameId, regions[0].region_key);
+  regionSelectEl.onchange = () => loadPackagesForGame(gameId, regionSelectEl.value);
 }
 
 document.getElementById('addRegionBtn').addEventListener('click', async () => {
   const gameId = gameSelectEl.value;
   if (!gameId) return alert('Please select a game first.');
   const regionKey = prompt('Enter region key (e.g., MY)');
-  if (!regionKey) return;
   const regionName = prompt('Enter full region name (e.g., Malaysia)');
-  if (!regionName) return;
   const flag = prompt('Flag emoji (optional)');
-  
-  await fetch(`${API_BASE_URL}/admin/region`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ game_id: gameId, region_key: regionKey, name: regionName, flag })
-  });
-  alert('Region added!');
-  loadRegionsForGame(gameId);
+  if (regionKey && regionName) {
+    await fetch(`${API_BASE_URL}/admin/region`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ game_id: gameId, region_key: regionKey, name: regionName, flag })
+    });
+    alert('Region added!');
+    loadRegionsForGame(gameId);
+  }
 });
 
 async function loadPackagesForGame(gameId, regionKey) {
   const packageListEl = document.getElementById('packageList');
   packageListEl.innerHTML = '<p>Loading packages...</p>';
-  try {
-    const url = `${API_BASE_URL}/packages?gameId=${gameId}${regionKey ? `&regionKey=${regionKey}` : ''}`;
-    const res = await fetch(url);
-    if (!res.ok) throw new Error('Failed to fetch packages');
-    const packages = await res.json();
-
-    if (packages.length) {
-      packageListEl.innerHTML = packages.map(pkg => `
-        <div class="package-item">
-          <span>${pkg.label} - ${pkg.price.toFixed(2)} MYR</span>
-          <button class="btn ghost" onclick="deletePackage('${pkg.id}')">Delete</button>
-        </div>`).join('');
-    } else {
-      packageListEl.innerHTML = '<p>No packages found.</p>';
-    }
-  } catch(err) {
-    console.error('Error loading packages:', err);
-    packageListEl.innerHTML = '<p>Could not load packages.</p>';
+  const res = await fetch(`${API_BASE_URL}/packages?gameId=${gameId}&regionKey=${regionKey || ''}`);
+  const packages = await res.json();
+  if (packages.length) {
+    packageListEl.innerHTML = packages.map(pkg => `
+      <div class="package-item">
+        <span>${pkg.label} - ${pkg.price.toFixed(2)} MYR</span>
+        <button class="btn ghost" onclick="deletePackage('${pkg.id}')">Delete</button>
+      </div>`).join('');
+  } else {
+    packageListEl.innerHTML = '<p>No packages found.</p>';
   }
 }
 
 window.deletePackage = async id => {
-  if (confirm('Are you sure you want to delete this package?')) {
+  if (confirm('Delete this package?')) {
     await fetch(`${API_BASE_URL}/admin/package?id=${id}`, { method: 'DELETE' });
-    // This re-triggers the 'change' event to reload the package list
     gameSelectEl.dispatchEvent(new Event('change'));
   }
 };
@@ -309,30 +330,21 @@ document.getElementById('addPackageBtn').addEventListener('click', async () => {
   const gameId = gameSelectEl.value;
   const game = ALL_GAMES.find(g => g.id === gameId);
   if (!game) return alert('Select a game first.');
-
   const regionKey = game.regionable ? document.getElementById('regionSelect').value : null;
-  if (game.regionable && !regionKey) return alert('Please select a region for this game.');
-
   const label = document.getElementById('packageName').value;
   const price = parseFloat(document.getElementById('packagePrice').value);
-  if (!label || isNaN(price)) return alert('Please enter a valid package name and price.');
-
+  if (!label || !price) return alert('Enter name and price.');
   await fetch(`${API_BASE_URL}/admin/package`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ game_id: gameId, region_key: regionKey, label, price })
   });
   alert('Package added!');
-  gameSelectEl.dispatchEvent(new Event('change')); // Reload packages
-  // Clear input fields
-  document.getElementById('packageName').value = '';
-  document.getElementById('packagePrice').value = '';
+  gameSelectEl.dispatchEvent(new Event('change'));
 });
 
 // Auto-login if session active
-if (sessionStorage.getItem('isAdmin') === 'true') {
-  showAdminPanel();
-}
+if (sessionStorage.getItem('isAdmin') === 'true') showAdminPanel();
 </script>
 </body>
 </html>

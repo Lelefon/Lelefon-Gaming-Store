@@ -3,8 +3,6 @@
 /**
  * Handles user login.
  * Compares a Base64 encoded password from the database.
- * NOTE: Base64 is NOT a secure hash. This is for functionality based on the current schema.
- * You should upgrade to a real hashing library like bcrypt in the future.
  */
 async function handleLogin(request, env) {
   const { email, password } = await request.json();
@@ -13,7 +11,6 @@ async function handleLogin(request, env) {
     return Response.json({ message: 'Email and password are required.' }, { status: 400 });
   }
 
-  // CORRECTED: Select the 'password_hash' column to match your schema.
   const user = await env.DB.prepare('SELECT email, password_hash, role FROM users WHERE email = ?')
     .bind(email)
     .first();
@@ -22,30 +19,21 @@ async function handleLogin(request, env) {
     return Response.json({ message: 'Invalid admin credentials.' }, { status: 401 });
   }
 
-  // In your schema, 'YWRtaW4xMjM=' is the Base64 encoding of 'admin123'.
-  // We must encode the submitted password in the same way to compare it.
   const submittedPasswordEncoded = btoa(password);
 
-  // CORRECTED: Compare the encoded submitted password with the user.password_hash from the DB.
   if (user.password_hash !== submittedPasswordEncoded) {
     return Response.json({ message: 'Invalid admin credentials.' }, { status: 401 });
   }
 
-  // Check if the user has the 'admin' role
   if (user.role !== 'admin') {
     return Response.json({ message: 'Access denied. Not an administrator.' }, { status: 403 });
   }
 
-  // Login successful
   return Response.json({ success: true, role: user.role });
 }
 
-
-// --- Placeholder functions for other routes to prevent crashes ---
-
 async function handleRegister(request, env) {
   // TODO: Implement user registration logic here.
-  // Remember to HASH the password before storing it in the database.
   return Response.json({ message: 'Registration endpoint not implemented.' }, { status: 501 });
 }
 
@@ -64,14 +52,10 @@ async function handleCreateOrder(request, env) {
 
 export default {
   async fetch(request, env) {
-    // allow your front-end hosts
     const ALLOWED_ORIGINS = new Set([
       'https://lelefongaming.com',
       'https://www.lelefongaming.com',
       'https://lelefon-gaming-store.pages.dev',
-      // For local development, you might add:
-      // 'http://localhost:3000',
-      // 'http://127.0.0.1:5500' // Or whatever your local server port is
     ]);
 
     const origin = request.headers.get('Origin') || '';
@@ -86,7 +70,6 @@ export default {
       'Access-Control-Max-Age': '600',
     });
 
-    // Handle Preflight OPTIONS requests
     if (request.method === 'OPTIONS') {
       return new Response(null, {
         status: 204,
@@ -119,7 +102,6 @@ export default {
           query += ' AND region_key = ?';
           params.push(regionKey);
         } else {
-          // Handle cases where a game is not regionable
           query += ' AND (region_key IS NULL OR region_key = "")';
         }
         const { results } = await env.DB.prepare(query).bind(...params).all();
@@ -136,6 +118,17 @@ export default {
         const email = url.searchParams.get('email');
         const { results } = await env.DB.prepare('SELECT * FROM orders WHERE user_email = ? ORDER BY created_at DESC').bind(email).all();
         response = Response.json(results);
+      } else if (url.pathname === '/api/admin/users' && request.method === 'GET') {
+        const { results } = await env.DB.prepare(
+          'SELECT u.email, u.role, w.balance FROM users u LEFT JOIN wallets w ON u.email = w.user_email ORDER BY u.created_at DESC'
+        ).all();
+        response = Response.json(results);
+      } else if (url.pathname === '/api/admin/wallet' && request.method === 'POST') {
+        const { email, newBalance } = await request.json();
+        await env.DB.prepare('UPDATE wallets SET balance = ? WHERE user_email = ?')
+          .bind(newBalance, email)
+          .run();
+        response = Response.json({ success: true });
       } else if (url.pathname === '/api/admin/game' && request.method === 'POST') {
         const data = await request.json();
         await env.DB.prepare('INSERT OR REPLACE INTO games (id, name, image_url, category, regionable, uid_required) VALUES (?, ?, ?, ?, ?, ?)')
@@ -159,7 +152,6 @@ export default {
       }
     } catch (e) {
       console.error(e);
-      // For better debugging, return the actual error message in development
       response = Response.json({ success: false, message: e.message }, { status: 500 });
     }
 
@@ -177,7 +169,6 @@ export default {
       });
     }
     
-    // If origin is not allowed, return the original response without CORS headers
     return response;
   }
 };
