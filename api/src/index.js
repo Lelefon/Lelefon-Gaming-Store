@@ -109,8 +109,7 @@ export default {
   },
 };
 
-// --- Your async helper functions (handleRegister, handleLogin, etc.) go here ---
-// --- NO CHANGES ARE NEEDED FOR THEM ---
+// --- Helper functions ---
 
 async function handleRegister(req, env) {
   const { email, password } = await req.json();
