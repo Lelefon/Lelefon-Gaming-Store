@@ -232,3 +232,50 @@ footer{
   .navbar-inner{ flex-direction:column; gap:10px }
   .game-card{ width:160px }
 }
+
+/* Add this to your existing homestyle.css or create the file */
+
+/* --- General Responsive Enhancements --- */
+body {
+    font-size: 16px; /* Base font size */
+}
+
+.wrap, .container {
+    width: min(1200px, 92vw); /* Keeps content from touching screen edges */
+    margin: 24px auto;
+}
+
+/* --- Responsive Navbar --- */
+.navbar-inner {
+    padding: 0 4vw; /* Use viewport width for padding */
+    flex-wrap: wrap; /* Allow items to wrap on small screens */
+    gap: 10px;
+}
+
+.logo-container h1 {
+    font-size: 1.2rem; /* Slightly smaller logo text on mobile */
+}
+
+.right-area {
+    gap: 12px;
+}
+
+/* --- Media Query for Mobile and Tablet --- */
+@media (max-width: 900px) {
+    .navbar-inner {
+        flex-direction: column; /* Stack logo and nav items vertically */
+        align-items: flex-start;
+        padding: 12px 4vw;
+    }
+
+    .right-area {
+        width: 100%;
+        flex-wrap: wrap; /* Allow nav links to wrap */
+        justify-content: flex-start;
+        font-size: 0.9rem;
+    }
+
+    .logo-container {
+        margin-bottom: 10px;
+    }
+}

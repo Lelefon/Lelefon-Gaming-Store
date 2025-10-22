@@ -6,6 +6,28 @@
   <title>Lelefon Gaming Store</title>
   <link rel="icon" type="image/png" href="images/lelefonlogo2.png?v=2" sizes="192x192">
   <link rel="stylesheet" href="homestyle.css"/>
+  <style>
+    /* Additional styles specific to this page */
+    .game-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr); /* 2 columns for mobile */
+        gap: 14px;
+    }
+    
+    /* Tablet layout */
+    @media (min-width: 600px) {
+        .game-grid {
+            grid-template-columns: repeat(3, 1fr);
+        }
+    }
+
+    /* Desktop layout */
+    @media (min-width: 900px) {
+        .game-grid {
+            grid-template-columns: repeat(5, 1fr);
+        }
+    }
+  </style>
 </head>
 <body>
 <header class="navbar">

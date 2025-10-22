@@ -7,8 +7,9 @@
 <link rel="stylesheet" href="homestyle.css"/>
 <style>
   .wrap{width:min(1100px,92vw);margin:24px auto}
-  .layout{display:grid;grid-template-columns:1.4fr 1fr;gap:18px}
-  @media (max-width:900px){.layout{grid-template-columns:1fr}}
+  .layout{display:grid;grid-template-columns:1fr;gap:18px} /* Mobile: 1 column */
+  @media (min-width:900px){.layout{grid-template-columns:1.4fr 1fr}} /* Desktop: 2 columns */
+
   .card{border:1px solid #e6e6e6;border-radius:12px;background:#fff;padding:14px}
   .stage{display:flex;gap:12px;margin:6px 0 14px}
   .stage div{padding:6px 10px;border-radius:999px;border:1px solid #e6e6e6}
@@ -95,7 +96,6 @@ function pushOrder(orderId, method, initialStatus){
   state.orders.unshift(order);
   if(mode==='cart'){ state.cart=[]; }
   state.pending=null;
-  // No save() here, it's called by the parent function
 }
 
 document.getElementById('payNow').onclick = async () => {
@@ -131,7 +131,6 @@ document.getElementById('payNow').onclick = async () => {
         alert('Payment successful. Order ' + orderId + ' is being processed.');
         location.href = 'transaction.html';
     } else {
-        // ... (iPay88 logic remains the same)
         const orderId = 'LF' + Date.now().toString(36).toUpperCase();
         const orderDetails = {
             amount: amt.toFixed(2),
@@ -142,9 +141,9 @@ document.getElementById('payNow').onclick = async () => {
 
         try {
             pushOrder(orderId, 'iPay88', 'Pending');
-            save(); // Save the pending order
+            save(); 
             
-            const response = await fetch('https://lelefon-ipay88-handler.YOUR_WORKER_SUBDOMAIN.workers.dev', { // <-- IMPORTANT: REPLACE WITH YOUR WORKER URL
+            const response = await fetch('https://lelefon-ipay88-handler.YOUR_WORKER_SUBDOMAIN.workers.dev', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(orderDetails)
@@ -174,7 +173,7 @@ document.getElementById('payNow').onclick = async () => {
         } catch (error) {
             console.error('Failed to initiate iPay88 payment:', error);
             alert('Could not connect to the payment service. Please try again later.');
-            state.orders = state.orders.filter(o => o.id !== orderId); // Revert order
+            state.orders = state.orders.filter(o => o.id !== orderId);
             save();
             payNowBtn.disabled = false;
             payNowBtn.textContent = 'Pay Now';

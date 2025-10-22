@@ -2,18 +2,22 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Lelefon • Product</title>
 <link rel="icon" type="image/png" href="images/lelefonlogo2.png?v=2" sizes="192x192">
 <link rel="stylesheet" href="homestyle.css"/>
 <style>
   .wrap{width:min(1100px,92vw);margin:24px auto}
-  .grid{display:grid;grid-template-columns:2fr 1fr;gap:18px}
-  @media (max-width:900px){.grid{grid-template-columns:1fr}}
+  .grid{display:grid;grid-template-columns:1fr;gap:18px} /* Mobile: 1 column */
+  @media (min-width: 900px){.grid{grid-template-columns:2fr 1fr}} /* Desktop: 2 columns */
+
   .product-head{display:flex;gap:18px;align-items:center;margin:8px 0 18px}
   .product-head img{width:72px;height:72px;border-radius:14px;border:1px solid #eee;object-fit:cover}
   .product-title h2{margin:0;font-size:1.6rem}
-  .pkg-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  
+  .pkg-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px} /* Mobile: 2 columns */
+  @media (min-width: 600px){.pkg-grid{grid-template-columns:repeat(3,1fr)}} /* Tablet/Desktop: 3 columns */
+
   .user-details-grid {display: grid;grid-template-columns: 1fr 1fr;gap: 12px;margin-bottom: 12px;}
   .badge{display:inline-block;padding:4px 10px;border:1px solid #e6e6e6;border-radius:999px;font-weight:700;margin-left:8px}
   .pkg{border:1px solid #e6e6e6;border-radius:12px;padding:14px;background:#fff;cursor:pointer}
@@ -24,17 +28,8 @@
   .price-row{display:flex;justify-content:space-between;align-items:center;margin-top:8px;font-weight:800}
 
   /* --- CSS TO REMOVE ARROWS FROM NUMBER INPUT --- */
-  /* For Chrome, Safari, Edge, Opera */
-  input::-webkit-outer-spin-button,
-  input::-webkit-inner-spin-button {
-    -webkit-appearance: none; /* This is a non-standard property, but required for these browsers. */
-    margin: 0;
-  }
-  /* For Firefox */
-  input[type=number] {
-    -moz-appearance: textfield; /* This non-standard property is required for Firefox. The editor warning can be safely ignored. */
-  }
-  /* --- END OF ADDED CSS --- */
+  input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  input[type=number] { -moz-appearance: textfield; }
 </style>
 </head>
 <body>
