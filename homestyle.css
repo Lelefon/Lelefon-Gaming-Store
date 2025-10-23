@@ -175,7 +175,7 @@ footer{
   cursor: pointer;
   text-align: center;
   transition: transform .2s, box-shadow .2s;
-  max-width: 140px; /* Scaled down the width */
+  max-width: 80px; /* Scaled down the width */
   margin: 0 auto;
 }
 
@@ -211,7 +211,7 @@ footer{
 
 .region-name {
   margin-top: 4px; /* Reduced margin */
-  font-weight: 700; /* Slightly smaller font */
+  font-weight: 600; /* Slightly smaller font */
   color: var(--text);
   font-size: 0.9rem; /* Smaller font */
 }
