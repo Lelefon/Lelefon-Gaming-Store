@@ -163,27 +163,98 @@ footer{
 /* =========================================================
    Modal (Region Select — used on home)
    ========================================================= */
-.modal{ position:fixed; inset:0; display:grid; place-items:center; z-index:1000 }
-.modal.hidden{ display:none }
-.modal-backdrop{ position:absolute; inset:0; background:rgba(0,0,0,.5); backdrop-filter:blur(3px) }
-.modal-dialog{
-  position:relative; width:min(720px,90vw); background: var(--bg);
-  border-radius:var(--radius-lg); padding:24px; color:var(--text);
+/* ---------- Region Card (Light) ---------- */
+.region-card {
+  cursor: pointer;
+  position: relative;
+  border-radius: 10px;
+  background: var(--bg-soft);
   border: 1px solid var(--border);
+  color: var(--text);
+  padding: 8px; /* Reduced padding to make it smaller */
+  cursor: pointer;
+  text-align: center;
+  transition: transform .2s, box-shadow .2s;
+  max-width: 200px; /* Restrict the card width */
+  margin: 0 auto; /* Center the card */
 }
-.modal-close{ position:absolute; right:14px; top:10px; background:none; border:none; color: var(--text-muted); font-size:26px; cursor:pointer }
-.modal-header h3{ margin:0; font-size:1.5rem }
-.modal-sub{ color: var(--text-muted); margin-bottom:10px; display:block }
-.region-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:18px }
-@media (max-width:700px){ .region-grid{ grid-template-columns:repeat(2,1fr) } }
-.region-card{
-  position:relative; border-radius:10px; background: var(--bg-soft); border:1px solid var(--border);
-  color: var(--text); padding:10px; cursor:pointer; text-align:center; transition:transform .2s, box-shadow .2s;
+
+.region-card:hover {
+  transform: translateY(-3px);
+  background: #ffffff;
+  box-shadow: var(--shadow);
 }
-.region-card:hover{ transform:translateY(-3px); background: #ffffff; box-shadow: var(--shadow); }
-.region-card img{ width:100%; height:80px; object-fit:cover; border-radius:6px }
-.region-card p{ margin: 6px 0 0; font-weight:600 }
-.region-card .badge{ position:absolute; left:10px; top:10px; background:#27c355; color:#0b2715; font-weight:700; font-size:.7rem; padding:3px 8px; border-radius:5px }
+
+.region-thumb {
+  position: relative;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #f4f4f5;
+  aspect-ratio: 1 / 1; /* Keep it square */
+  width: 100%;
+  height: 120px; /* Reduce height to make the region smaller */
+  box-shadow: 0 6px 18px rgba(0,0,0,.06);
+  transition: transform .18s ease, box-shadow .18s ease;
+}
+
+.region-card:hover .region-thumb {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 24px rgba(0,0,0,.12);
+}
+
+.region-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.region-name {
+  margin-top: 6px; /* Reduced margin to make it more compact */
+  font-weight: 800;
+  color: var(--text);
+}
+
+.flag-badge {
+  position: absolute;
+  top: 6px; /* Position flag inside the region card */
+  right: 6px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #ffffff;
+  color: #111827;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px; /* Reduced font size for the flag */
+  font-weight: 900;
+  border: 1px solid rgba(0,0,0,.06);
+  box-shadow: 0 2px 8px rgba(0,0,0,.10);
+  user-select: none;
+}
+
+.chip {
+  position: absolute;
+  left: 6px; /* Adjusted chip positioning */
+  bottom: 6px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: .65rem; /* Smaller chip size */
+  font-weight: 700;
+  letter-spacing: .3px;
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(0,0,0,.18);
+}
+
+.chip.uid {
+  background: #16a34a;
+}
+
+.chip.code {
+  background: #ea8a00;
+}
+
 
 /* =========================================================
    Transactions Page & Status Colors
