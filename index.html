@@ -92,8 +92,8 @@
 
 .region-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));  /* Slightly increased minimum width */
-  gap: 16px;  /* Maintain a moderate gap */
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));  /* Decreased the minimum width further */
+  gap: 8px;  /* Reduced gap further to make the cards closer */
 }
 
 .region-card {
@@ -103,11 +103,11 @@
   background: var(--bg-soft);
   border: 1px solid var(--border);
   color: var(--text);
-  padding: 12px;  /* Increased padding for slightly larger cards */
+  padding: 4px;  /* Reduced padding */
   cursor: pointer;
   text-align: center;
   transition: transform .2s, box-shadow .2s;
-  max-width: 220px;  /* Increased width moderately */
+  max-width: 130px;  /* Further reduced width */
   margin: 0 auto;
 }
 
@@ -118,14 +118,14 @@
   background: #f4f4f5;
   aspect-ratio: 1 / 1;
   width: 100%;
-  height: 80px;  /* Slightly increased height */
-  box-shadow: 0 6px 18px rgba(0,0,0,.08);
+  height: 55px;  /* Reduced height */
+  box-shadow: 0 4px 12px rgba(0,0,0,.06);
   transition: transform .18s ease, box-shadow .18s ease;
 }
 
 .region-card:hover .region-thumb {
-  transform: translateY(-2px);  /* Slight hover effect */
-  box-shadow: 0 8px 20px rgba(0,0,0,.10);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(0,0,0,.12);
 }
 
 .region-thumb img {
@@ -136,25 +136,25 @@
 }
 
 .region-name {
-  margin-top: 8px;
+  margin-top: 4px;
   font-weight: 700;
   color: var(--text);
-  font-size: 1rem;  /* Slightly increased font size */
+  font-size: 0.85rem;  /* Smaller text size for compactness */
 }
 
 .flag-badge {
   position: absolute;
-  top: 8px;
-  right: 8px;
-  width: 24px;  /* Slightly larger flag */
-  height: 24px;
+  top: 4px;
+  right: 4px;
+  width: 18px;  /* Smaller flag */
+  height: 18px;
   border-radius: 50%;
   background: #ffffff;
   color: #111827;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;  /* Slightly increased flag text size */
+  font-size: 10px;
   font-weight: 900;
   border: 1px solid rgba(0,0,0,.06);
   box-shadow: 0 2px 6px rgba(0,0,0,.08);
@@ -163,13 +163,13 @@
 
 .chip {
   position: absolute;
-  left: 8px;
-  bottom: 8px;
-  padding: 6px 12px;
+  left: 6px;
+  bottom: 6px;
+  padding: 4px 6px;
   border-radius: 6px;
-  font-size: .85rem;  /* Slightly increased font size for the chip */
-  font-weight: 700;
-  letter-spacing: .3px;
+  font-size: .65rem;
+  font-weight: 600;
+  letter-spacing: .2px;
   color: #fff;
   box-shadow: 0 2px 6px rgba(0,0,0,.12);
 }
@@ -181,7 +181,6 @@
 .chip.code {
   background: #ea8a00;
 }
-
 
 
 
