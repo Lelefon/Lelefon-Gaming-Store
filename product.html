@@ -94,7 +94,7 @@
 
   const params = new URLSearchParams(location.search);
   const gameId   = params.get('game');
-  const gameName = params.get('name');
+  const gameName = decodeURIComponent(params.get('name'));  // Decode the name to handle encoded URL
   const regionKey= params.get('region');
   const needsUID = params.get('uid') === '1';
   const category = params.get('cat') || 'direct';
@@ -108,14 +108,12 @@
   if (needsUID) document.getElementById('uidField').style.display = 'block';
 
   // Load a representative image for header (first package fetch not needed)
-  (async ()=>{
-    try{
-      const r = await fetch(`${API_BASE_URL}/games`);
-      const games = await r.json();
-      const g = games.find(x=>String(x.id)===String(gameId));
-      if (g) document.getElementById('gameImg').src = g.image_url;
-    }catch{}
-  })();
+  (async ()=>{ try{
+    const r = await fetch(`${API_BASE_URL}/games`);
+    const games = await r.json();
+    const g = games.find(x=>String(x.id)===String(gameId));
+    if (g) document.getElementById('gameImg').src = g.image_url;
+  }catch{} })();
 
   let selectedPackage=null;
   const qtyEl = document.getElementById('qtyInput');
@@ -182,10 +180,7 @@
   document.getElementById('addCart').onclick = ()=>handlePurchase(false);
   document.getElementById('buyNow').onclick  = ()=>handlePurchase(true);
 
-  document.addEventListener('DOMContentLoaded', ()=>{
-    refreshNavbar();
-    loadPackages();
-  });
+  document.addEventListener('DOMContentLoaded', ()=>{ refreshNavbar(); loadPackages(); });
 </script>
 </body>
 </html>
