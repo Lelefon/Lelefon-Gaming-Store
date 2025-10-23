@@ -175,7 +175,7 @@ footer{
   cursor: pointer;
   text-align: center;
   transition: transform .2s, box-shadow .2s;
-  max-width: 200px; /* Restrict the card width */
+  max-width: 150px; /* Restrict the card width */
   margin: 0 auto; /* Center the card */
 }
 
