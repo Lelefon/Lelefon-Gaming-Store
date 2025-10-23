@@ -167,16 +167,16 @@ footer{
 .region-card {
   cursor: pointer;
   position: relative;
-  border-radius: 10px;
+  border-radius: 8px;  /* Slightly smaller border radius */
   background: var(--bg-soft);
   border: 1px solid var(--border);
   color: var(--text);
-  padding: 8px; /* Reduced padding to make it smaller */
+  padding: 6px;  /* Reduced padding */
   cursor: pointer;
   text-align: center;
   transition: transform .2s, box-shadow .2s;
-  max-width: 150px; /* Restrict the card width */
-  margin: 0 auto; /* Center the card */
+  max-width: 140px; /* Scaled down the width */
+  margin: 0 auto;
 }
 
 .region-card:hover {
@@ -190,16 +190,16 @@ footer{
   border-radius: 8px;
   overflow: hidden;
   background: #f4f4f5;
-  aspect-ratio: 1 / 1; /* Keep it square */
+  aspect-ratio: 1 / 1;
   width: 100%;
-  height: 120px; /* Reduce height to make the region smaller */
-  box-shadow: 0 6px 18px rgba(0,0,0,.06);
+  height: 60px; /* Reduced height */
+  box-shadow: 0 4px 12px rgba(0,0,0,.06); /* Smaller shadow */
   transition: transform .18s ease, box-shadow .18s ease;
 }
 
 .region-card:hover .region-thumb {
-  transform: translateY(-3px);
-  box-shadow: 0 10px 24px rgba(0,0,0,.12);
+  transform: translateY(-2px); /* Slightly less movement */
+  box-shadow: 0 6px 18px rgba(0,0,0,.12);
 }
 
 .region-thumb img {
@@ -210,41 +210,42 @@ footer{
 }
 
 .region-name {
-  margin-top: 6px; /* Reduced margin to make it more compact */
-  font-weight: 800;
+  margin-top: 4px; /* Reduced margin */
+  font-weight: 700; /* Slightly smaller font */
   color: var(--text);
+  font-size: 0.9rem; /* Smaller font */
 }
 
 .flag-badge {
   position: absolute;
-  top: 6px; /* Position flag inside the region card */
-  right: 6px;
-  width: 26px;
-  height: 26px;
+  top: 4px;  /* Flag is now higher inside the card */
+  right: 4px;
+  width: 20px; /* Smaller flag */
+  height: 20px;
   border-radius: 50%;
   background: #ffffff;
   color: #111827;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px; /* Reduced font size for the flag */
+  font-size: 10px; /* Smaller font size for flag */
   font-weight: 900;
   border: 1px solid rgba(0,0,0,.06);
-  box-shadow: 0 2px 8px rgba(0,0,0,.10);
+  box-shadow: 0 2px 6px rgba(0,0,0,.08);
   user-select: none;
 }
 
 .chip {
   position: absolute;
-  left: 6px; /* Adjusted chip positioning */
+  left: 6px;
   bottom: 6px;
-  padding: 4px 8px;
+  padding: 4px 6px;  /* Smaller padding for the chip */
   border-radius: 6px;
-  font-size: .65rem; /* Smaller chip size */
-  font-weight: 700;
-  letter-spacing: .3px;
+  font-size: .65rem; /* Smaller chip font */
+  font-weight: 600;
+  letter-spacing: .2px;
   color: #fff;
-  box-shadow: 0 2px 6px rgba(0,0,0,.18);
+  box-shadow: 0 2px 6px rgba(0,0,0,.12);
 }
 
 .chip.uid {
