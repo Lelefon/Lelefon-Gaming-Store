@@ -89,15 +89,11 @@
       padding:6px 10px; border-radius:999px; background:#e5e7eb; color:#0f172a;
     }
 
-    .region-grid {
-      display:grid; gap:22px; margin-top:18px;
-      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-    }
 
 .region-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));  /* Decreased the minimum width */
-  gap: 12px;  /* Reduced gap between cards */
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));  /* Decreased the minimum width further */
+  gap: 8px;  /* Reduced gap further to make the cards closer */
 }
 
 .region-card {
@@ -107,11 +103,11 @@
   background: var(--bg-soft);
   border: 1px solid var(--border);
   color: var(--text);
-  padding: 6px;
+  padding: 4px;  /* Reduced padding */
   cursor: pointer;
   text-align: center;
   transition: transform .2s, box-shadow .2s;
-  max-width: 140px;
+  max-width: 130px;  /* Further reduced width */
   margin: 0 auto;
 }
 
@@ -122,7 +118,7 @@
   background: #f4f4f5;
   aspect-ratio: 1 / 1;
   width: 100%;
-  height: 60px;  /* Smaller height */
+  height: 55px;  /* Reduced height */
   box-shadow: 0 4px 12px rgba(0,0,0,.06);
   transition: transform .18s ease, box-shadow .18s ease;
 }
@@ -143,15 +139,15 @@
   margin-top: 4px;
   font-weight: 700;
   color: var(--text);
-  font-size: 0.9rem;
+  font-size: 0.85rem;  /* Smaller text size for compactness */
 }
 
 .flag-badge {
   position: absolute;
   top: 4px;
   right: 4px;
-  width: 20px;
-  height: 20px;
+  width: 18px;  /* Smaller flag */
+  height: 18px;
   border-radius: 50%;
   background: #ffffff;
   color: #111827;
@@ -185,6 +181,7 @@
 .chip.code {
   background: #ea8a00;
 }
+
 
 
 
