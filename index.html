@@ -92,8 +92,8 @@
 
 .region-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));  /* Adjusted the minimum width */
-  gap: 12px;  /* Slightly increased gap for more breathing space */
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));  /* Doubled the minimum width */
+  gap: 24px;  /* Increased gap for a more spacious layout */
 }
 
 .region-card {
@@ -103,11 +103,11 @@
   background: var(--bg-soft);
   border: 1px solid var(--border);
   color: var(--text);
-  padding: 8px;  /* Slightly increased padding for better layout */
+  padding: 16px;  /* Increased padding for a larger card */
   cursor: pointer;
   text-align: center;
   transition: transform .2s, box-shadow .2s;
-  max-width: 160px;  /* Adjusted width for better proportion */
+  max-width: 320px;  /* Doubled the width */
   margin: 0 auto;
 }
 
@@ -118,14 +118,14 @@
   background: #f4f4f5;
   aspect-ratio: 1 / 1;
   width: 100%;
-  height: 80px;  /* Increased height for more balance */
-  box-shadow: 0 4px 12px rgba(0,0,0,.06);
+  height: 160px;  /* Doubled the height */
+  box-shadow: 0 6px 18px rgba(0,0,0,.12);
   transition: transform .18s ease, box-shadow .18s ease;
 }
 
 .region-card:hover .region-thumb {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 18px rgba(0,0,0,.12);
+  transform: translateY(-4px);  /* Increased hover effect */
+  box-shadow: 0 8px 24px rgba(0,0,0,.18);
 }
 
 .region-thumb img {
@@ -136,42 +136,42 @@
 }
 
 .region-name {
-  margin-top: 8px;
+  margin-top: 12px;
   font-weight: 700;
   color: var(--text);
-  font-size: 1rem;  /* Increased font size for better visibility */
+  font-size: 1.2rem;  /* Increased font size for visibility */
 }
 
 .flag-badge {
   position: absolute;
-  top: 6px;
-  right: 6px;
-  width: 22px;  /* Slightly larger flag */
-  height: 22px;
+  top: 10px;
+  right: 10px;
+  width: 30px;  /* Doubled the flag size */
+  height: 30px;
   border-radius: 50%;
   background: #ffffff;
   color: #111827;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;  /* Adjusted font size for clarity */
+  font-size: 16px;  /* Increased font size */
   font-weight: 900;
   border: 1px solid rgba(0,0,0,.06);
-  box-shadow: 0 2px 6px rgba(0,0,0,.08);
+  box-shadow: 0 4px 10px rgba(0,0,0,.12);
   user-select: none;
 }
 
 .chip {
   position: absolute;
-  left: 8px;
-  bottom: 8px;
-  padding: 6px 12px;
-  border-radius: 6px;
-  font-size: .75rem;  /* Adjusted font size */
-  font-weight: 600;
-  letter-spacing: .3px;
+  left: 12px;
+  bottom: 12px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 1rem;  /* Increased font size */
+  font-weight: 700;
+  letter-spacing: .4px;
   color: #fff;
-  box-shadow: 0 2px 6px rgba(0,0,0,.12);
+  box-shadow: 0 4px 10px rgba(0,0,0,.18);
 }
 
 .chip.uid {
