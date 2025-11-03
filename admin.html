@@ -15,7 +15,7 @@
     .form-group { margin-bottom: 12px; }
     .form-group label { display: block; margin-bottom: 4px; font-weight: bold; }
     .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px; }
-    .package-item { border-bottom: 1px solid #eee; padding: 8px 0; display: flex; justify-content: space-between; align-items: center; }
+    .package-item { border-bottom: 1px solid #eee; padding: 8px 0; display: grid; grid-template-columns: 1fr 140px 220px; gap: 8px; align-items: center; }
     .admin-controls { margin-top: 20px; }
     .hidden { display: none; }
     #adminLogin { max-width: 400px; margin: 50px auto; }
@@ -37,6 +37,8 @@
     .status-Cancelled { background:#fde8e8; border-color:#f3b1b1; }
     .status-Refunded { background:#e9f2ff; border-color:#b7d2ff; }
     .btn[disabled], .btn.ghost[disabled] { opacity:.5; pointer-events:none; }
+    .pkg-actions { display:flex; gap:8px; justify-content:flex-end; }
+    .pkg-price { width: 120px; }
   </style>
 </head>
 <body>
@@ -342,13 +344,42 @@ async function loadPackagesForGame(gameId, regionKey) {
   if (packages.length) {
     packageListEl.innerHTML = packages.map(pkg => `
       <div class="package-item">
-        <span>${pkg.label} - ${pkg.price.toFixed(2)} MYR</span>
-        <button class="btn ghost" onclick="deletePackage('${pkg.id}')">Delete</button>
+        <input id="pkg-label-${pkg.id}" type="text" value="${pkg.label}">
+        <input id="pkg-price-${pkg.id}" class="pkg-price" type="number" step="0.01" value="${(+pkg.price).toFixed(2)}">
+        <div class="pkg-actions">
+          <button class="btn" onclick="savePackage('${pkg.id}')">Save</button>
+          <button class="btn ghost" onclick="deletePackage('${pkg.id}')">Delete</button>
+        </div>
       </div>`).join('');
   } else {
     packageListEl.innerHTML = '<p>No packages found.</p>';
   }
 }
+
+window.savePackage = async (id) => {
+  const labelEl = document.getElementById(`pkg-label-${id}`);
+  const priceEl = document.getElementById(`pkg-price-${id}`);
+  const label = labelEl ? labelEl.value.trim() : null;
+  const price = priceEl ? parseFloat(priceEl.value) : null;
+
+  if (label === '' || price === null || isNaN(price)) {
+    return alert('Please provide a valid name and price.');
+  }
+  try {
+    const res = await fetch(`${API_BASE_URL}/admin/package`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, label, price })
+    });
+    if (!res.ok) throw new Error('Update failed');
+    alert('Package updated!');
+    // reload to reflect any formatting/ordering changes
+    gameSelectEl.dispatchEvent(new Event('change'));
+  } catch (e) {
+    console.error(e);
+    alert('Could not update package.');
+  }
+};
 
 window.deletePackage = async id => {
   if (confirm('Delete this package?')) {
@@ -364,13 +395,15 @@ document.getElementById('addPackageBtn').addEventListener('click', async () => {
   const regionKey = game.regionable ? document.getElementById('regionSelect').value : null;
   const label = document.getElementById('packageName').value;
   const price = parseFloat(document.getElementById('packagePrice').value);
-  if (!label || !price) return alert('Enter name and price.');
+  if (!label || isNaN(price)) return alert('Enter name and price.');
   await fetch(`${API_BASE_URL}/admin/package`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ game_id: gameId, region_key: regionKey, label, price })
   });
   alert('Package added!');
+  document.getElementById('packageName').value = '';
+  document.getElementById('packagePrice').value = '';
   gameSelectEl.dispatchEvent(new Event('change'));
 });
 
@@ -501,9 +534,7 @@ async function changeStatus(orderId, endpoint, successMsg){
 }
 
 window.completeOrder = (orderId)=> changeStatus(orderId, '/admin/order/complete', 'Order marked as Completed.');
-// CANCEL: only marks as Cancelled (no refund)
 window.cancelOrder   = (orderId)=> changeStatus(orderId, '/admin/order/cancel',   'Order marked as Cancelled.');
-// REFUND: credits wallet (when applicable) and flips status to Refunded
 window.refundOrder   = (orderId)=> changeStatus(orderId, '/admin/order/refund',   'Order refunded.');
 
 if (sessionStorage.getItem('isAdmin') === 'true') showAdminPanel();

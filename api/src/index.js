@@ -280,6 +280,21 @@ export default {
         ).bind(id, data.game_id, data.region_key, data.label, data.price).run();
         response = Response.json({ success: true });
 
+      // *** NEW: Update package (label and/or price) ***
+      } else if (url.pathname === '/api/admin/package' && request.method === 'PUT') {
+        const data = await request.json();
+        const id = data.id;
+        if (!id) {
+          response = Response.json({ success: false, message: 'id is required' }, { status: 400 });
+        } else {
+          const label = (typeof data.label === 'string') ? data.label : null;
+          const price = (data.price === undefined || data.price === null) ? null : Number(data.price);
+          await env.DB.prepare(
+            'UPDATE packages SET label = COALESCE(?, label), price = COALESCE(?, price) WHERE id = ?'
+          ).bind(label, price, id).run();
+          response = Response.json({ success: true });
+        }
+
       } else if (url.pathname === '/api/admin/package' && request.method === 'DELETE') {
         const id = url.searchParams.get('id');
         await env.DB.prepare('DELETE FROM packages WHERE id = ?').bind(id).run();
