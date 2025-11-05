@@ -15,13 +15,12 @@
     .form-group { margin-bottom: 12px; }
     .form-group label { display: block; margin-bottom: 4px; font-weight: bold; }
     .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px; }
-    .package-item { border-bottom: 1px solid #eee; padding: 8px 0; display: grid; grid-template-columns: 1fr 140px 220px; gap: 8px; align-items: center; }
+    .package-item { border-bottom: 1px solid #eee; padding: 8px 0; display: grid; grid-template-columns: 1fr 120px 120px 220px; gap: 8px; align-items: center; }
     .admin-controls { margin-top: 20px; }
     .hidden { display: none; }
     #adminLogin { max-width: 400px; margin: 50px auto; }
     .btn-row { display: flex; gap: 10px; margin-top: 8px; }
     .title { font-weight: 800; font-size: 1.4rem; margin-bottom: 6px; }
-    .region-group h4 { margin: 16px 0 8px; padding-bottom: 4px; border-bottom: 1px solid #eee; }
     .section-header { font-size: 1.5rem; margin-bottom: 10px; border-bottom: 2px solid #f0f0f0; padding-bottom: 5px; }
     .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 
@@ -38,7 +37,6 @@
     .status-Refunded { background:#e9f2ff; border-color:#b7d2ff; }
     .btn[disabled], .btn.ghost[disabled] { opacity:.5; pointer-events:none; }
     .pkg-actions { display:flex; gap:8px; justify-content:flex-end; }
-    .pkg-price { width: 120px; }
   </style>
 </head>
 <body>
@@ -114,6 +112,7 @@
           <h4>Add New Package</h4>
           <div class="form-group"><label>Package Name</label><input id="packageName" type="text"></div>
           <div class="form-group"><label>Package Price (MYR)</label><input id="packagePrice" type="number" step="0.01"></div>
+          <div class="form-group"><label>Discount % (0-100)</label><input id="packageDiscount" type="number" min="0" max="100" step="1" value="0"></div>
           <button id="addPackageBtn" class="btn primary">Add Package</button>
         </section>
       </div>
@@ -345,7 +344,8 @@ async function loadPackagesForGame(gameId, regionKey) {
     packageListEl.innerHTML = packages.map(pkg => `
       <div class="package-item">
         <input id="pkg-label-${pkg.id}" type="text" value="${pkg.label}">
-        <input id="pkg-price-${pkg.id}" class="pkg-price" type="number" step="0.01" value="${(+pkg.price).toFixed(2)}">
+        <input id="pkg-price-${pkg.id}" type="number" step="0.01" value="${(+pkg.price).toFixed(2)}">
+        <input id="pkg-disc-${pkg.id}" type="number" min="0" max="100" step="1" value="${+(pkg.discount_pct || 0)}" title="Discount %">
         <div class="pkg-actions">
           <button class="btn" onclick="savePackage('${pkg.id}')">Save</button>
           <button class="btn ghost" onclick="deletePackage('${pkg.id}')">Delete</button>
@@ -359,21 +359,22 @@ async function loadPackagesForGame(gameId, regionKey) {
 window.savePackage = async (id) => {
   const labelEl = document.getElementById(`pkg-label-${id}`);
   const priceEl = document.getElementById(`pkg-price-${id}`);
+  const discEl  = document.getElementById(`pkg-disc-${id}`);
   const label = labelEl ? labelEl.value.trim() : null;
   const price = priceEl ? parseFloat(priceEl.value) : null;
+  const discount_pct = discEl ? parseFloat(discEl.value) : null;
 
-  if (label === '' || price === null || isNaN(price)) {
-    return alert('Please provide a valid name and price.');
+  if (label === '' || price === null || isNaN(price) || discount_pct === null || isNaN(discount_pct) || discount_pct < 0 || discount_pct > 100) {
+    return alert('Please provide a valid name, price, and discount % (0–100).');
   }
   try {
     const res = await fetch(`${API_BASE_URL}/admin/package`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id, label, price })
+      body: JSON.stringify({ id, label, price, discount_pct })
     });
     if (!res.ok) throw new Error('Update failed');
     alert('Package updated!');
-    // reload to reflect any formatting/ordering changes
     gameSelectEl.dispatchEvent(new Event('change'));
   } catch (e) {
     console.error(e);
@@ -393,17 +394,20 @@ document.getElementById('addPackageBtn').addEventListener('click', async () => {
   const game = ALL_GAMES.find(g => g.id === gameId);
   if (!game) return alert('Select a game first.');
   const regionKey = game.regionable ? document.getElementById('regionSelect').value : null;
-  const label = document.getElementById('packageName').value;
+  const label = document.getElementById('packageName').value.trim();
   const price = parseFloat(document.getElementById('packagePrice').value);
-  if (!label || isNaN(price)) return alert('Enter name and price.');
+  const discount_pct = parseFloat(document.getElementById('packageDiscount').value || '0');
+  if (!label || isNaN(price) || isNaN(discount_pct) || discount_pct < 0 || discount_pct > 100) return alert('Enter name, price, and valid discount %.');
+
   await fetch(`${API_BASE_URL}/admin/package`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ game_id: gameId, region_key: regionKey, label, price })
+    body: JSON.stringify({ game_id: gameId, region_key: regionKey, label, price, discount_pct })
   });
   alert('Package added!');
   document.getElementById('packageName').value = '';
   document.getElementById('packagePrice').value = '';
+  document.getElementById('packageDiscount').value = '0';
   gameSelectEl.dispatchEvent(new Event('change'));
 });
 
@@ -526,7 +530,7 @@ async function changeStatus(orderId, endpoint, successMsg){
     const data = await res.json();
     if (!res.ok) throw new Error(data.message || 'Failed.');
     alert(successMsg);
-    loadOrders(); // refresh table
+    loadOrders();
   } catch(e) {
     alert(e.message || 'Action failed.');
     btnCell.innerHTML = old;

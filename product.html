@@ -25,7 +25,13 @@
   .card{border:1px solid #e6e6e6;border-radius:12px;background:#fff;padding:14px}
   .qty{display:flex;align-items:center;gap:8px}
   .qty input{width:72px;text-align:center}
+
   .price-row{display:flex;justify-content:space-between;align-items:center;margin-top:8px;font-weight:800}
+  .price-old{opacity:.65;text-decoration:line-through;margin-right:8px}
+  .price-new{font-weight:900}
+  .price-line{display:flex;gap:8px;align-items:center;margin-top:6px}
+  .tag-off{font-size:.72rem;font-weight:800;color:#0ea5e9;background:#eaf6ff;border-radius:6px;padding:2px 6px}
+
   input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
   input[type=number]{-moz-appearance:textfield}
 </style>
@@ -76,6 +82,13 @@
   const Store={read:(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}},write:(k,v)=>localStorage.setItem(k,JSON.stringify(v))};
   const user = Store.read('lf_user');
 
+  function effPrice(pkg){
+    const p = Number(pkg.price||0);
+    const d = Number(pkg.discount_pct||0);
+    if(d>0) return +(p * (1 - d/100)).toFixed(2);
+    return +p.toFixed(2);
+  }
+
   async function refreshNavbar(){
     const cart = Store.read('lf_cart', []);
     document.getElementById('cartCount').textContent = cart.reduce((s,i)=>s+(i.qty||1),0);
@@ -94,12 +107,11 @@
 
   const params = new URLSearchParams(location.search);
   const gameId   = params.get('game');
-  const gameName = decodeURIComponent(params.get('name'));  // Decode the name to handle encoded URL
+  const gameName = decodeURIComponent(params.get('name'));
   const regionKey= params.get('region');
   const needsUID = params.get('uid') === '1';
   const category = params.get('cat') || 'direct';
 
-  // Header setup
   document.getElementById('crumbGame').textContent = gameName;
   document.getElementById('titleText').innerHTML = gameName;
   document.getElementById('modeChip').textContent = (category==='card'?'CODE':'UID');
@@ -107,7 +119,6 @@
   if (regionKey) { const rb=document.getElementById('regionBadge'); rb.style.display='inline-flex'; rb.textContent = 'Region: ' + regionKey; }
   if (needsUID) document.getElementById('uidField').style.display = 'block';
 
-  // Load a representative image for header (first package fetch not needed)
   (async ()=>{ try{
     const r = await fetch(`${API_BASE_URL}/games`);
     const games = await r.json();
@@ -124,12 +135,20 @@
       const r = await fetch(`${API_BASE_URL}/packages?gameId=${gameId}&regionKey=${regionKey||''}`);
       const pkgs = await r.json();
       if (pkgs.length>0){
-        grid.innerHTML = pkgs.map(pkg=>`
+        grid.innerHTML = pkgs.map(pkg=>{
+          const d = Number(pkg.discount_pct||0);
+          const base = Number(pkg.price).toFixed(2);
+          const after = effPrice(pkg).toFixed(2);
+          return `
           <div class="pkg" onclick='selectPackage(this, ${JSON.stringify(pkg).replace(/'/g,"&apos;")})'>
             <strong>${pkg.label}</strong>
-            <div>${Number(pkg.price).toFixed(2)} MYR</div>
-          </div>
-        `).join('');
+            <div class="price-line">
+              ${d>0 ? `<span class="price-old">RM ${base}</span>` : ``}
+              <span class="price-new">RM ${after}</span>
+              ${d>0 ? `<span class="tag-off">-${d}%</span>` : ``}
+            </div>
+          </div>`;
+        }).join('');
       }else{
         grid.innerHTML = '<p class="muted">No packages are available for this selection yet.</p>';
       }
@@ -145,7 +164,7 @@
   }
   function updateTotal(){
     const q = parseInt(qtyEl.value)||1;
-    const p = selectedPackage?Number(selectedPackage.price):0;
+    const p = selectedPackage?effPrice(selectedPackage):0;
     document.getElementById('totalPrice').textContent = (p*q).toFixed(2)+' MYR';
   }
   document.getElementById('qMinus').onclick=()=>{ qtyEl.value=Math.max(1,(parseInt(qtyEl.value)||1)-1); updateTotal(); };
@@ -156,11 +175,12 @@
     if(!selectedPackage) return alert('Please select a package.');
     if(needsUID && !document.getElementById('uidInput').value.trim()) return alert('Please enter your User ID.');
 
+    const unitPrice = effPrice(selectedPackage);
     const item = {
       key: Date.now().toString(36),
       gameName: gameName,
       pkgLabel: selectedPackage.label,
-      price: Number(selectedPackage.price),
+      price: unitPrice,               // use discounted price in cart/checkout
       qty: parseInt(qtyEl.value)||1,
       uid: needsUID ? document.getElementById('uidInput').value.trim() : null
     };

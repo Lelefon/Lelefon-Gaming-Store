@@ -1,7 +1,6 @@
 // =========================
 //  Helpers
 // =========================
-
 function b64(s) { return typeof btoa === 'function' ? btoa(s) : Buffer.from(s).toString('base64'); }
 function normEmail(e) { return (e || '').toLowerCase(); }
 function nowOrderId() { return `ORD-${Date.now().toString(36)}-${Math.floor(Math.random() * 1e8).toString(36)}`; }
@@ -36,8 +35,6 @@ async function getOrder(env, orderId) {
 // =========================
 //  Auth Handlers
 // =========================
-
-/** ADMIN login (used by admin.html) */
 async function handleAdminLogin(request, env) {
   const { email, password } = await request.json();
   if (!email || !password) {
@@ -59,7 +56,6 @@ async function handleAdminLogin(request, env) {
   return Response.json({ success: true, email: user.email, role: user.role });
 }
 
-/** USER login (local or google) */
 async function handleUserLogin(request, env) {
   const { email, password, provider } = await request.json();
   if (!email) return Response.json({ success: false, message: 'Email is required.' }, { status: 400 });
@@ -83,7 +79,6 @@ async function handleUserLogin(request, env) {
   return Response.json({ success: true, email: user.email, role: user.role || 'user' });
 }
 
-/** Registration (local or google) */
 async function handleRegister(request, env) {
   const { email, password, provider } = await request.json();
   if (!email) return Response.json({ success: false, message: 'Email is required.' }, { status: 400 });
@@ -107,7 +102,6 @@ async function handleRegister(request, env) {
 // =========================
 //  Wallet & Orders
 // =========================
-
 async function handleTopup(request, env) {
   const { email, amount } = await request.json();
   const amt = Number(amount || 0);
@@ -119,18 +113,6 @@ async function handleTopup(request, env) {
   return Response.json({ success: true, balance: w ? Number(w.balance) : 0 });
 }
 
-/**
- * Create an order:
- * body: {
- *   user_email,
- *   items:[{gameName, pkgLabel, price, qty, uid?, pin?}],
- *   total,
- *   method: 'LF Wallet' | 'iPay88',
- *   channel?
- * }
- * - For 'LF Wallet': checks funds, debits, then creates order.
- * - For 'iPay88': simulates gateway success (no wallet change).
- */
 async function handleCreateOrder(request, env) {
   const body = await request.json();
   const email = normEmail(body.user_email);
@@ -151,12 +133,10 @@ async function handleCreateOrder(request, env) {
 
   const orderId = nowOrderId();
 
-  // Insert order
   await env.DB.prepare(
     'INSERT INTO orders (id, user_email, total, payment_method, status) VALUES (?, ?, ?, ?, ?)'
   ).bind(orderId, email, total, method, 'Processing').run();
 
-  // Insert items
   for (const it of items) {
     const qty = Number(it.qty || 1);
     const price = Number(it.price || 0);
@@ -181,7 +161,6 @@ async function handleCreateOrder(request, env) {
 // =========================
 //  Main fetch router
 // =========================
-
 export default {
   async fetch(request, env) {
     const ALLOWED_ORIGINS = new Set([
@@ -220,7 +199,6 @@ export default {
       } else if ((url.pathname === '/api/login/user' || url.pathname === '/api/user/login') && request.method === 'POST') {
         response = await handleUserLogin(request, env);
 
-      // Back-compat (admin.html used this)
       } else if (url.pathname === '/api/login' && request.method === 'POST') {
         response = await handleAdminLogin(request, env);
 
@@ -275,12 +253,13 @@ export default {
       } else if (url.pathname === '/api/admin/package' && request.method === 'POST') {
         const data = await request.json();
         const id = `${data.game_id}-${data.label.replace(/\s+/g, '-')}-${Date.now().toString(36)}`;
+        const discount = Number(data.discount_pct || 0);
         await env.DB.prepare(
-          'INSERT INTO packages (id, game_id, region_key, label, price) VALUES (?, ?, ?, ?, ?)'
-        ).bind(id, data.game_id, data.region_key, data.label, data.price).run();
+          'INSERT INTO packages (id, game_id, region_key, label, price, discount_pct) VALUES (?, ?, ?, ?, ?, ?)'
+        ).bind(id, data.game_id, data.region_key, data.label, Number(data.price), discount).run();
         response = Response.json({ success: true });
 
-      // *** NEW: Update package (label and/or price) ***
+      // UPDATE (label, price, discount_pct)
       } else if (url.pathname === '/api/admin/package' && request.method === 'PUT') {
         const data = await request.json();
         const id = data.id;
@@ -289,9 +268,12 @@ export default {
         } else {
           const label = (typeof data.label === 'string') ? data.label : null;
           const price = (data.price === undefined || data.price === null) ? null : Number(data.price);
+          const discount = (data.discount_pct === undefined || data.discount_pct === null)
+            ? null
+            : Number(data.discount_pct);
           await env.DB.prepare(
-            'UPDATE packages SET label = COALESCE(?, label), price = COALESCE(?, price) WHERE id = ?'
-          ).bind(label, price, id).run();
+            'UPDATE packages SET label = COALESCE(?, label), price = COALESCE(?, price), discount_pct = COALESCE(?, discount_pct) WHERE id = ?'
+          ).bind(label, price, discount, id).run();
           response = Response.json({ success: true });
         }
 
@@ -336,14 +318,12 @@ export default {
           .run();
         response = Response.json({ success: true });
 
-      // Orders list for admin
       } else if (url.pathname === '/api/admin/orders' && request.method === 'GET') {
         const { results } = await env.DB.prepare(
           'SELECT id, user_email, total, payment_method, status, created_at FROM orders ORDER BY created_at DESC LIMIT 200'
         ).all();
         response = Response.json(results);
 
-      // Order items for admin
       } else if (url.pathname === '/api/admin/order-items' && request.method === 'GET') {
         const orderId = url.searchParams.get('orderId');
         const { results } = await env.DB.prepare(
@@ -354,7 +334,6 @@ export default {
         ).bind(orderId).all();
         response = Response.json(results);
 
-      // Save a PIN on a game-card item
       } else if (url.pathname === '/api/admin/order/pin' && request.method === 'POST') {
         const { order_id, item_id, pin } = await request.json();
         if (!order_id || !item_id) {
@@ -365,7 +344,6 @@ export default {
           response = Response.json({ success: true });
         }
 
-      // Complete → set Completed
       } else if (url.pathname === '/api/admin/order/complete' && request.method === 'POST') {
         const { order_id } = await request.json();
         if (!order_id) {
@@ -375,7 +353,6 @@ export default {
           response = Response.json({ success: true });
         }
 
-      // Cancel → only set Cancelled (no refund here)
       } else if (url.pathname === '/api/admin/order/cancel' && request.method === 'POST') {
         const { order_id } = await request.json();
         if (!order_id) {
@@ -392,7 +369,6 @@ export default {
           }
         }
 
-      // Refund → allowed when currently Cancelled. Credit wallet only for LF Wallet.
       } else if (url.pathname === '/api/admin/order/refund' && request.method === 'POST') {
         const { order_id } = await request.json();
         if (!order_id) {
@@ -406,7 +382,6 @@ export default {
           } else if (o.status !== 'Cancelled') {
             response = Response.json({ success: false, message: 'Refund only allowed after Cancelled' }, { status: 400 });
           } else {
-            // Credit wallet only if it was wallet payment
             if (o.payment_method === 'LF Wallet') {
               await creditWallet(env, o.user_email, Number(o.total));
             }
@@ -423,7 +398,6 @@ export default {
       response = Response.json({ success: false, message: e.message }, { status: 500 });
     }
 
-    // Add CORS if allowed origin
     if (isAllowed) {
       const headers = new Headers(response.headers);
       const cors = baseCors(origin);
