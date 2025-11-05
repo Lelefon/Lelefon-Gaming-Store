@@ -31,10 +31,25 @@ async function getOrder(env, orderId) {
   ).bind(orderId).first();
 }
 
+// --- NEW: ensure schema has discount_pct ---
+async function ensureDiscountColumn(env) {
+  try {
+    const { results } = await env.DB.prepare('PRAGMA table_info(packages)').all();
+    const has = results?.some(r => r.name === 'discount_pct');
+    if (!has) {
+      await env.DB.prepare('ALTER TABLE packages ADD COLUMN discount_pct REAL NOT NULL DEFAULT 0').run();
+    }
+  } catch (e) {
+    // If this ever fails, let caller handle; but usually fine.
+    console.error('ensureDiscountColumn error:', e);
+  }
+}
 
 // =========================
 //  Auth Handlers
 // =========================
+
+/** ADMIN login (used by admin.html) */
 async function handleAdminLogin(request, env) {
   const { email, password } = await request.json();
   if (!email || !password) {
@@ -56,6 +71,7 @@ async function handleAdminLogin(request, env) {
   return Response.json({ success: true, email: user.email, role: user.role });
 }
 
+/** USER login (local or google) */
 async function handleUserLogin(request, env) {
   const { email, password, provider } = await request.json();
   if (!email) return Response.json({ success: false, message: 'Email is required.' }, { status: 400 });
@@ -79,6 +95,7 @@ async function handleUserLogin(request, env) {
   return Response.json({ success: true, email: user.email, role: user.role || 'user' });
 }
 
+/** Registration (local or google) */
 async function handleRegister(request, env) {
   const { email, password, provider } = await request.json();
   if (!email) return Response.json({ success: false, message: 'Email is required.' }, { status: 400 });
@@ -102,6 +119,7 @@ async function handleRegister(request, env) {
 // =========================
 //  Wallet & Orders
 // =========================
+
 async function handleTopup(request, env) {
   const { email, amount } = await request.json();
   const amt = Number(amount || 0);
@@ -113,6 +131,9 @@ async function handleTopup(request, env) {
   return Response.json({ success: true, balance: w ? Number(w.balance) : 0 });
 }
 
+/**
+ * Create an order
+ */
 async function handleCreateOrder(request, env) {
   const body = await request.json();
   const email = normEmail(body.user_email);
@@ -133,10 +154,12 @@ async function handleCreateOrder(request, env) {
 
   const orderId = nowOrderId();
 
+  // Insert order
   await env.DB.prepare(
     'INSERT INTO orders (id, user_email, total, payment_method, status) VALUES (?, ?, ?, ?, ?)'
   ).bind(orderId, email, total, method, 'Processing').run();
 
+  // Insert items
   for (const it of items) {
     const qty = Number(it.qty || 1);
     const price = Number(it.price || 0);
@@ -161,6 +184,7 @@ async function handleCreateOrder(request, env) {
 // =========================
 //  Main fetch router
 // =========================
+
 export default {
   async fetch(request, env) {
     const ALLOWED_ORIGINS = new Set([
@@ -199,6 +223,7 @@ export default {
       } else if ((url.pathname === '/api/login/user' || url.pathname === '/api/user/login') && request.method === 'POST') {
         response = await handleUserLogin(request, env);
 
+      // Back-compat (admin.html used this)
       } else if (url.pathname === '/api/login' && request.method === 'POST') {
         response = await handleAdminLogin(request, env);
 
@@ -251,6 +276,7 @@ export default {
         response = Response.json(results);
 
       } else if (url.pathname === '/api/admin/package' && request.method === 'POST') {
+        await ensureDiscountColumn(env);
         const data = await request.json();
         const id = `${data.game_id}-${data.label.replace(/\s+/g, '-')}-${Date.now().toString(36)}`;
         const discount = Number(data.discount_pct || 0);
@@ -259,8 +285,8 @@ export default {
         ).bind(id, data.game_id, data.region_key, data.label, Number(data.price), discount).run();
         response = Response.json({ success: true });
 
-      // UPDATE (label, price, discount_pct)
       } else if (url.pathname === '/api/admin/package' && request.method === 'PUT') {
+        await ensureDiscountColumn(env);
         const data = await request.json();
         const id = data.id;
         if (!id) {
@@ -398,6 +424,7 @@ export default {
       response = Response.json({ success: false, message: e.message }, { status: 500 });
     }
 
+    // Add CORS if allowed origin
     if (isAllowed) {
       const headers = new Headers(response.headers);
       const cors = baseCors(origin);
