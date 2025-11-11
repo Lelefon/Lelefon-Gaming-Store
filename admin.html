@@ -305,7 +305,7 @@ gameSelectEl.addEventListener('change', async e => {
     await loadRegionsForGame(gameId);
   } else {
     regionArea.classList.add('hidden');
-    await loadPackagesForGame(gameId, null);
+    await loadPackagesForGame(gameId, ''); // IMPORTANT: empty string for no-region games
   }
 });
 
@@ -361,7 +361,7 @@ function getCurrentGameAndRegion() {
   const gameId = gameSelectEl.value;
   const game = ALL_GAMES.find(g => g.id === gameId);
   const regionEl = document.getElementById('regionSelect');
-  const regionKey = game && game.regionable ? (regionEl ? regionEl.value : null) : null;
+  const regionKey = game && game.regionable ? (regionEl ? regionEl.value : null) : ''; // empty string for no-region
   return { gameId, regionKey, game };
 }
 
@@ -385,7 +385,6 @@ window.savePackage = async (id) => {
     if (!res.ok) throw new Error('Update failed');
     alert('Package updated!');
 
-    // --- Stay on current region and just reload that list
     const { gameId, regionKey } = getCurrentGameAndRegion();
     await loadPackagesForGame(gameId, regionKey);
     const regionEl = document.getElementById('regionSelect');
@@ -400,7 +399,6 @@ window.deletePackage = async id => {
   if (!confirm('Delete this package?')) return;
   const { gameId, regionKey } = getCurrentGameAndRegion();
   await fetch(`${API_BASE_URL}/admin/package?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
-  // Reload only current region
   await loadPackagesForGame(gameId, regionKey);
   const regionEl = document.getElementById('regionSelect');
   if (regionEl && regionKey != null) regionEl.value = regionKey;
@@ -414,20 +412,28 @@ document.getElementById('addPackageBtn').addEventListener('click', async () => {
   const discount_pct = parseFloat(document.getElementById('packageDiscount').value || '0');
   if (!label || isNaN(price) || isNaN(discount_pct) || discount_pct < 0 || discount_pct > 100) return alert('Enter name, price, and valid discount %.');
 
-  await fetch(`${API_BASE_URL}/admin/package`, {
+  // IMPORTANT: for non-region games, send empty string
+  const sendRegion = game.regionable ? (regionKey || '') : '';
+
+  const res = await fetch(`${API_BASE_URL}/admin/package`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ game_id: gameId, region_key: regionKey, label, price, discount_pct })
+    body: JSON.stringify({ game_id: gameId, region_key: sendRegion, label, price, discount_pct })
   });
+  if (!res.ok) {
+    const t = await res.text().catch(()=> '');
+    alert('Failed to add package.' + (t ? `\n${t}` : ''));
+    return;
+  }
+
   alert('Package added!');
   document.getElementById('packageName').value = '';
   document.getElementById('packagePrice').value = '';
   document.getElementById('packageDiscount').value = '0';
 
-  // --- IMPORTANT: stay on same region and reload only that region's packages
-  await loadPackagesForGame(gameId, regionKey);
+  await loadPackagesForGame(gameId, sendRegion);
   const regionEl = document.getElementById('regionSelect');
-  if (regionEl && regionKey != null) regionEl.value = regionKey;
+  if (regionEl && sendRegion != null) regionEl.value = sendRegion;
 });
 
 // ---------- Order Management ----------

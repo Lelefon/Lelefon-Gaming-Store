@@ -31,7 +31,7 @@ async function getOrder(env, orderId) {
   ).bind(orderId).first();
 }
 
-// --- NEW: ensure schema has discount_pct ---
+// --- ensure schema has discount_pct ---
 async function ensureDiscountColumn(env) {
   try {
     const { results } = await env.DB.prepare('PRAGMA table_info(packages)').all();
@@ -40,7 +40,6 @@ async function ensureDiscountColumn(env) {
       await env.DB.prepare('ALTER TABLE packages ADD COLUMN discount_pct REAL NOT NULL DEFAULT 0').run();
     }
   } catch (e) {
-    // If this ever fails, let caller handle; but usually fine.
     console.error('ensureDiscountColumn error:', e);
   }
 }
@@ -278,11 +277,15 @@ export default {
       } else if (url.pathname === '/api/admin/package' && request.method === 'POST') {
         await ensureDiscountColumn(env);
         const data = await request.json();
-        const id = `${data.game_id}-${data.label.replace(/\s+/g, '-')}-${Date.now().toString(36)}`;
+
+        // Normalize region for NOT NULL column
+        const region = (data.region_key === null || data.region_key === undefined) ? '' : String(data.region_key);
+
+        const id = `${data.game_id}-${(data.label || '').replace(/\s+/g, '-')}-${Date.now().toString(36)}`;
         const discount = Number(data.discount_pct || 0);
         await env.DB.prepare(
           'INSERT INTO packages (id, game_id, region_key, label, price, discount_pct) VALUES (?, ?, ?, ?, ?, ?)'
-        ).bind(id, data.game_id, data.region_key, data.label, Number(data.price), discount).run();
+        ).bind(id, data.game_id, region, data.label, Number(data.price), discount).run();
         response = Response.json({ success: true });
 
       } else if (url.pathname === '/api/admin/package' && request.method === 'PUT') {
@@ -424,7 +427,6 @@ export default {
       response = Response.json({ success: false, message: e.message }, { status: 500 });
     }
 
-    // Add CORS if allowed origin
     if (isAllowed) {
       const headers = new Headers(response.headers);
       const cors = baseCors(origin);
