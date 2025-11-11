@@ -31,7 +31,7 @@ async function getOrder(env, orderId) {
   ).bind(orderId).first();
 }
 
-// --- NEW: ensure schema has discount_pct ---
+// --- ensure discount column exists (safe to run repeatedly)
 async function ensureDiscountColumn(env) {
   try {
     const { results } = await env.DB.prepare('PRAGMA table_info(packages)').all();
@@ -40,7 +40,6 @@ async function ensureDiscountColumn(env) {
       await env.DB.prepare('ALTER TABLE packages ADD COLUMN discount_pct REAL NOT NULL DEFAULT 0').run();
     }
   } catch (e) {
-    // If this ever fails, let caller handle; but usually fine.
     console.error('ensureDiscountColumn error:', e);
   }
 }
@@ -131,9 +130,7 @@ async function handleTopup(request, env) {
   return Response.json({ success: true, balance: w ? Number(w.balance) : 0 });
 }
 
-/**
- * Create an order
- */
+/** Create an order */
 async function handleCreateOrder(request, env) {
   const body = await request.json();
   const email = normEmail(body.user_email);
@@ -154,12 +151,10 @@ async function handleCreateOrder(request, env) {
 
   const orderId = nowOrderId();
 
-  // Insert order
   await env.DB.prepare(
     'INSERT INTO orders (id, user_email, total, payment_method, status) VALUES (?, ?, ?, ?, ?)'
   ).bind(orderId, email, total, method, 'Processing').run();
 
-  // Insert items
   for (const it of items) {
     const qty = Number(it.qty || 1);
     const price = Number(it.price || 0);
