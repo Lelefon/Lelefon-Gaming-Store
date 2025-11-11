@@ -356,6 +356,15 @@ async function loadPackagesForGame(gameId, regionKey) {
   }
 }
 
+// Keep helpers to reload the same region after actions
+function getCurrentGameAndRegion() {
+  const gameId = gameSelectEl.value;
+  const game = ALL_GAMES.find(g => g.id === gameId);
+  const regionEl = document.getElementById('regionSelect');
+  const regionKey = game && game.regionable ? (regionEl ? regionEl.value : null) : null;
+  return { gameId, regionKey, game };
+}
+
 window.savePackage = async (id) => {
   const labelEl = document.getElementById(`pkg-label-${id}`);
   const priceEl = document.getElementById(`pkg-price-${id}`);
@@ -375,7 +384,12 @@ window.savePackage = async (id) => {
     });
     if (!res.ok) throw new Error('Update failed');
     alert('Package updated!');
-    gameSelectEl.dispatchEvent(new Event('change'));
+
+    // --- Stay on current region and just reload that list
+    const { gameId, regionKey } = getCurrentGameAndRegion();
+    await loadPackagesForGame(gameId, regionKey);
+    const regionEl = document.getElementById('regionSelect');
+    if (regionEl && regionKey != null) regionEl.value = regionKey;
   } catch (e) {
     console.error(e);
     alert('Could not update package.');
@@ -383,17 +397,18 @@ window.savePackage = async (id) => {
 };
 
 window.deletePackage = async id => {
-  if (confirm('Delete this package?')) {
-    await fetch(`${API_BASE_URL}/admin/package?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
-    gameSelectEl.dispatchEvent(new Event('change'));
-  }
+  if (!confirm('Delete this package?')) return;
+  const { gameId, regionKey } = getCurrentGameAndRegion();
+  await fetch(`${API_BASE_URL}/admin/package?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
+  // Reload only current region
+  await loadPackagesForGame(gameId, regionKey);
+  const regionEl = document.getElementById('regionSelect');
+  if (regionEl && regionKey != null) regionEl.value = regionKey;
 };
 
 document.getElementById('addPackageBtn').addEventListener('click', async () => {
-  const gameId = gameSelectEl.value;
-  const game = ALL_GAMES.find(g => g.id === gameId);
+  const { gameId, regionKey, game } = getCurrentGameAndRegion();
   if (!game) return alert('Select a game first.');
-  const regionKey = game.regionable ? document.getElementById('regionSelect').value : null;
   const label = document.getElementById('packageName').value.trim();
   const price = parseFloat(document.getElementById('packagePrice').value);
   const discount_pct = parseFloat(document.getElementById('packageDiscount').value || '0');
@@ -408,7 +423,11 @@ document.getElementById('addPackageBtn').addEventListener('click', async () => {
   document.getElementById('packageName').value = '';
   document.getElementById('packagePrice').value = '';
   document.getElementById('packageDiscount').value = '0';
-  gameSelectEl.dispatchEvent(new Event('change'));
+
+  // --- IMPORTANT: stay on same region and reload only that region's packages
+  await loadPackagesForGame(gameId, regionKey);
+  const regionEl = document.getElementById('regionSelect');
+  if (regionEl && regionKey != null) regionEl.value = regionKey;
 });
 
 // ---------- Order Management ----------
@@ -530,7 +549,7 @@ async function changeStatus(orderId, endpoint, successMsg){
     const data = await res.json();
     if (!res.ok) throw new Error(data.message || 'Failed.');
     alert(successMsg);
-    loadOrders();
+    loadOrders(); // refresh table
   } catch(e) {
     alert(e.message || 'Action failed.');
     btnCell.innerHTML = old;
