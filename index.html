@@ -20,7 +20,6 @@
     .banner {
       position: relative;
       width: 100%;
-      /* --- FIX: Changed aspect ratio to make the banner taller and reduce cropping --- */
       aspect-ratio: 16/8; 
       border-radius: 14px;
       overflow: hidden;
@@ -362,7 +361,7 @@
 /* ---------------- Configurable assets ------------------ */
 const BANNERS = [
   {src:'images/honorofkingbanner.png', link:'#'},
-  {src:'images/valorantbanner.png', link:'#'},
+  {src:'images/valorantbanner1.png', link:'#'},
   {src:'images/pubgbanner.png', link:'#'},
   {src:'images/zzzbanner.png', link:'#'},
   {src:'images/mlbbbanner.png', link:'#'},
@@ -453,10 +452,18 @@ async function handleGameClick(game) {
   if (Number(game.regionable) === 1) {
     try {
       const r = await fetch(`${API_BASE_URL}/regions?gameId=${encodeURIComponent(game.id)}`);
+      // IMPROVEMENT: Check if the response is OK before trying to parse JSON
+      if (!r.ok) {
+        throw new Error(`Server returned status: ${r.status}`);
+      }
       const regions = await r.json();
       renderRegionGrid(game, regions);
       openModal();
-    } catch { alert('Could not fetch regions.'); }
+    } catch (err) {
+      // IMPROVEMENT: Log the actual error to the console for easier debugging
+      console.error("Failed to fetch or render regions:", err);
+      alert('Could not fetch regions.'); 
+    }
   } else {
     navigateToProduct(game.id, game.name, null, game.uid_required, game.category);
   }
@@ -469,7 +476,8 @@ function renderRegionGrid(game, regions) {
   grid.innerHTML = regions.map(r => `
     <div class="region-card" onclick="navigateToProduct('${game.id}','${encodeURIComponent(game.name)}','${r.region_key}',${game.uid_required},'${game.category}')">
       <div class="region-thumb">
-        <img src="${game.image_url}" alt="${g.name}">
+        <!-- FIX: The typo was here. Changed alt="${g.name}" to alt="${game.name}" -->
+        <img src="${game.image_url}" alt="${game.name}">
         <div class="flag-badge">${r.flag || '🌐'}</div>
         <div class="chip ${isCode ? 'code' : 'uid'}">${isCode ? 'CODE' : 'UID'}</div>
       </div>
