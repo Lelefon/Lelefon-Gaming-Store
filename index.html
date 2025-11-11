@@ -103,21 +103,7 @@
     }
     .filter-btn.active { background:var(--bw-black); color:#fff; border-color:var(--bw-black); }
 
-    /* ---------------- Quick Links ---------------- */
-    .quicklinks {
-      margin: 22px 0 12px;
-      display:grid; grid-template-columns: repeat(6, 1fr); gap:12px;
-    }
-    .ql-card{
-      text-align:center; cursor:pointer; text-decoration:none; color:inherit;
-    }
-    .ql-icon{
-      width:60px;height:60px;border-radius:16px; margin:0 auto 8px;
-      display:grid;place-items:center; font-weight:900; color:#fff;
-      background: linear-gradient(135deg,#4f46e5,#0ea5e9);
-      box-shadow: 0 6px 16px rgba(0,0,0,.12);
-    }
-    .ql-name{ font-size:.92rem; font-weight:800; }
+
 
     /* ---------------- Payment Ticker ---------------- */
     .pay-wrap{ margin: 24px 0; border:1px solid var(--bw-gray); border-radius:12px; overflow:hidden; background:#fff; }
@@ -290,14 +276,7 @@ const BANNERS = [
   {src:'images/banner6.jpg', link:'#'},
 ];
 
-const QUICK_LINKS = [
-  {name:'MLBB',    color:'linear-gradient(135deg,#06b6d4,#3b82f6)', link:'https://m.mobilelegends.com/', icon:'ML'},
-  {name:'Genshin', color:'linear-gradient(135deg,#22c55e,#84cc16)', link:'https://genshin.hoyoverse.com/', icon:'G'},
-  {name:'PUBG',    color:'linear-gradient(135deg,#f97316,#f59e0b)', link:'https://www.pubgmobile.com/', icon:'P'},
-  {name:'Valorant',color:'linear-gradient(135deg,#ef4444,#ec4899)', link:'https://playvalorant.com/', icon:'V'},
-  {name:'Free Fire',color:'linear-gradient(135deg,#a855f7,#6366f1)', link:'https://ff.garena.com/', icon:'F'},
-  {name:'Steam',   color:'linear-gradient(135deg,#0ea5e9,#2563eb)', link:'https://store.steampowered.com/', icon:'S'},
-];
+
 
 const PAYMENTS = [
   {label:'Touch ’n Go eWallet'},
