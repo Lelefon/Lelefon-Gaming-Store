@@ -132,12 +132,20 @@
 
     /* ---------------- Region Modal ---------------- */
     .modal.hidden { display:none; }
-    .modal { position:fixed; inset:0; z-index:1000; }
+    .modal { 
+      position:fixed; inset:0; z-index:1000;
+      /* --- FIX: Added flex properties to center the modal dialog --- */
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
     .modal-backdrop { position:absolute; inset:0; background:rgba(0,0,0,.45); backdrop-filter: blur(2px); animation: fadeIn .18s ease-out; }
     @keyframes fadeIn { from{opacity:0} to{opacity:1} }
     .modal-dialog {
       position:relative; background:#ffffff; color:#0f172a; width:min(1020px,92vw);
-      margin: 40px auto; border-radius:20px; box-shadow:0 20px 60px rgba(0,0,0,.35); padding:26px; animation: pop .18s ease-out;
+      /* --- FIX: Removed top margin, flexbox handles centering now --- */
+      margin: 20px; 
+      border-radius:20px; box-shadow:0 20px 60px rgba(0,0,0,.35); padding:26px; animation: pop .18s ease-out;
     }
     @keyframes pop { from{ transform: translateY(6px); opacity:.95 } to{ transform: translateY(0); opacity:1 }}
     .modal-header { display:flex; align-items:center; gap:12px; }
@@ -548,7 +556,7 @@ function renderPayments(){
   line.innerHTML = all.map(p=>`<div class="pay-logo"><img src="${p.imgSrc}" alt="${p.label}"></div>`).join('');
 }
 
-/* ---------------- Boot ----------------- */
+/* ---------------- Boot ---------------- */
 document.addEventListener('DOMContentLoaded',()=>{
   refreshNavbar();
   loadGames();
