@@ -102,13 +102,10 @@
         <section class="card">
           <h3 class="section-header">2. Manage Packages</h3>
           <div class="form-group"><label>Select Game</label><select id="gameSelect"></select></div>
-
           <div id="regionArea" class="hidden form-group">
-            <label>Select Region</label>
-            <select id="regionSelect"></select>
+            <label>Select Region</label><select id="regionSelect"></select>
             <button id="addRegionBtn" class="btn ghost" style="font-size:0.8rem; margin-top:4px;">+ Add New Region</button>
           </div>
-
           <hr/>
           <div id="packageList"><p class="muted">Select a game to see packages.</p></div>
           <hr/>
@@ -303,7 +300,6 @@ gameSelectEl.addEventListener('change', async e => {
     document.getElementById('packageList').innerHTML = '<p>Select a game to see packages.</p>';
     return;
   }
-
   if (game.regionable) {
     regionArea.classList.remove('hidden');
     await loadRegionsForGame(gameId);
@@ -317,18 +313,9 @@ async function loadRegionsForGame(gameId) {
   const res = await fetch(`${API_BASE_URL}/regions?gameId=${encodeURIComponent(gameId)}`);
   const regions = await res.json();
   const regionSelectEl = document.getElementById('regionSelect');
-
-  if (regions.length) {
-    regionSelectEl.innerHTML = regions.map(r => `<option value="${r.region_key}">${r.name}</option>`).join('');
-    // load first region’s packages by default
-    await loadPackagesForGame(gameId, regions[0].region_key);
-    regionSelectEl.onchange = () => loadPackagesForGame(gameId, regionSelectEl.value);
-  } else {
-    // No regions yet: still show the global (no-region) packages
-    regionSelectEl.innerHTML = '<option value="">— No regions —</option>';
-    await loadPackagesForGame(gameId, null);
-    regionSelectEl.onchange = () => loadPackagesForGame(gameId, null);
-  }
+  regionSelectEl.innerHTML = regions.map(r => `<option value="${r.region_key}">${r.name}</option>`).join('');
+  if (regions.length) loadPackagesForGame(gameId, regions[0].region_key);
+  regionSelectEl.onchange = () => loadPackagesForGame(gameId, regionSelectEl.value);
 }
 
 document.getElementById('addRegionBtn').addEventListener('click', async () => {
@@ -374,7 +361,7 @@ function getCurrentGameAndRegion() {
   const gameId = gameSelectEl.value;
   const game = ALL_GAMES.find(g => g.id === gameId);
   const regionEl = document.getElementById('regionSelect');
-  const regionKey = game && game.regionable ? (regionEl ? (regionEl.value || null) : null) : null;
+  const regionKey = game && game.regionable ? (regionEl ? regionEl.value : null) : null;
   return { gameId, regionKey, game };
 }
 
@@ -398,10 +385,11 @@ window.savePackage = async (id) => {
     if (!res.ok) throw new Error('Update failed');
     alert('Package updated!');
 
+    // --- Stay on current region and just reload that list
     const { gameId, regionKey } = getCurrentGameAndRegion();
     await loadPackagesForGame(gameId, regionKey);
     const regionEl = document.getElementById('regionSelect');
-    if (regionEl) regionEl.value = regionKey || '';
+    if (regionEl && regionKey != null) regionEl.value = regionKey;
   } catch (e) {
     console.error(e);
     alert('Could not update package.');
@@ -412,9 +400,10 @@ window.deletePackage = async id => {
   if (!confirm('Delete this package?')) return;
   const { gameId, regionKey } = getCurrentGameAndRegion();
   await fetch(`${API_BASE_URL}/admin/package?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
+  // Reload only current region
   await loadPackagesForGame(gameId, regionKey);
   const regionEl = document.getElementById('regionSelect');
-  if (regionEl) regionEl.value = regionKey || '';
+  if (regionEl && regionKey != null) regionEl.value = regionKey;
 };
 
 document.getElementById('addPackageBtn').addEventListener('click', async () => {
@@ -435,9 +424,10 @@ document.getElementById('addPackageBtn').addEventListener('click', async () => {
   document.getElementById('packagePrice').value = '';
   document.getElementById('packageDiscount').value = '0';
 
+  // --- IMPORTANT: stay on same region and reload only that region's packages
   await loadPackagesForGame(gameId, regionKey);
   const regionEl = document.getElementById('regionSelect');
-  if (regionEl) regionEl.value = regionKey || '';
+  if (regionEl && regionKey != null) regionEl.value = regionKey;
 });
 
 // ---------- Order Management ----------
@@ -559,7 +549,7 @@ async function changeStatus(orderId, endpoint, successMsg){
     const data = await res.json();
     if (!res.ok) throw new Error(data.message || 'Failed.');
     alert(successMsg);
-    loadOrders();
+    loadOrders(); // refresh table
   } catch(e) {
     alert(e.message || 'Action failed.');
     btnCell.innerHTML = old;
