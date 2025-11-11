@@ -20,7 +20,8 @@
     .banner {
       position: relative;
       width: 100%;
-      aspect-ratio: 16/6;
+      /* --- FIX: Changed aspect ratio to make the banner taller and reduce cropping --- */
+      aspect-ratio: 16/8; 
       border-radius: 14px;
       overflow: hidden;
       background: #0f172a;
@@ -468,7 +469,7 @@ function renderRegionGrid(game, regions) {
   grid.innerHTML = regions.map(r => `
     <div class="region-card" onclick="navigateToProduct('${game.id}','${encodeURIComponent(game.name)}','${r.region_key}',${game.uid_required},'${game.category}')">
       <div class="region-thumb">
-        <img src="${game.image_url}" alt="${game.name}">
+        <img src="${game.image_url}" alt="${g.name}">
         <div class="flag-badge">${r.flag || '🌐'}</div>
         <div class="chip ${isCode ? 'code' : 'uid'}">${isCode ? 'CODE' : 'UID'}</div>
       </div>
