@@ -452,7 +452,6 @@ async function handleGameClick(game) {
   if (Number(game.regionable) === 1) {
     try {
       const r = await fetch(`${API_BASE_URL}/regions?gameId=${encodeURIComponent(game.id)}`);
-      // IMPROVEMENT: Check if the response is OK before trying to parse JSON
       if (!r.ok) {
         throw new Error(`Server returned status: ${r.status}`);
       }
@@ -460,9 +459,8 @@ async function handleGameClick(game) {
       renderRegionGrid(game, regions);
       openModal();
     } catch (err) {
-      // IMPROVEMENT: Log the actual error to the console for easier debugging
       console.error("Failed to fetch or render regions:", err);
-      alert('Could not fetch regions.'); 
+      alert('Could not fetch regions.');
     }
   } else {
     navigateToProduct(game.id, game.name, null, game.uid_required, game.category);
@@ -476,7 +474,6 @@ function renderRegionGrid(game, regions) {
   grid.innerHTML = regions.map(r => `
     <div class="region-card" onclick="navigateToProduct('${game.id}','${encodeURIComponent(game.name)}','${r.region_key}',${game.uid_required},'${game.category}')">
       <div class="region-thumb">
-        <!-- FIX: The typo was here. Changed alt="${g.name}" to alt="${game.name}" -->
         <img src="${game.image_url}" alt="${game.name}">
         <div class="flag-badge">${r.flag || '🌐'}</div>
         <div class="chip ${isCode ? 'code' : 'uid'}">${isCode ? 'CODE' : 'UID'}</div>
@@ -551,7 +548,7 @@ function renderPayments(){
   line.innerHTML = all.map(p=>`<div class="pay-logo"><img src="${p.imgSrc}" alt="${p.label}"></div>`).join('');
 }
 
-/* ---------------- Boot ---------------- */
+/* ---------------- Boot ----------------- */
 document.addEventListener('DOMContentLoaded',()=>{
   refreshNavbar();
   loadGames();
