@@ -103,22 +103,6 @@
     }
     .filter-btn.active { background:var(--bw-black); color:#fff; border-color:var(--bw-black); }
 
-    /* ---------------- Quick Links ---------------- */
-    .quicklinks {
-      margin: 22px 0 12px;
-      display:grid; grid-template-columns: repeat(6, 1fr); gap:12px;
-    }
-    .ql-card{
-      text-align:center; cursor:pointer; text-decoration:none; color:inherit;
-    }
-    .ql-icon{
-      width:60px;height:60px;border-radius:16px; margin:0 auto 8px;
-      display:grid;place-items:center; font-weight:900; color:#fff;
-      background: linear-gradient(135deg,#4f46e5,#0ea5e9);
-      box-shadow: 0 6px 16px rgba(0,0,0,.12);
-    }
-    .ql-name{ font-size:.92rem; font-weight:800; }
-
     /* ---------------- Payment Ticker ---------------- */
     .pay-wrap{ margin: 24px 0; border:1px solid var(--bw-gray); border-radius:12px; overflow:hidden; background:#fff; }
     .pay-title{ padding:10px 12px; font-weight:900; border-bottom:1px solid var(--bw-gray); }
@@ -239,8 +223,6 @@
       </div>
     </div>
 
-
-
     <h3 style="text-align:center;margin:10px 0 12px;">Popular Games</h3>
     <div class="game-grid" id="gameGrid">
       <p class="muted">Loading games from database...</p>
@@ -249,7 +231,7 @@
     <!-- Payment Methods Ticker -->
     <div class="pay-wrap">
       <div class="pay-title">Payment Methods</div>
-      <div class="pay-ticker">
+      <div class="pay-ticker>
         <div class="pay-line" id="payLine"></div>
       </div>
     </div>
@@ -260,7 +242,7 @@
   <p style="text-align:center">© 2025 Lelefon Gaming Store. All Rights Reserved.</p>
   <div class="disclaimer">
     <strong>Disclaimer:</strong> All product names, logos, and brands are property of their respective owners. 
-     Prices and availability are subject to change without notice. 
+    Lelefon Gaming is a reseller platform. Prices and availability are subject to change without notice. 
     By using this site you agree to our Terms of Service and Privacy Policy.
   </div>
 </footer>
@@ -288,8 +270,6 @@ const BANNERS = [
   {src:'images/banner5.jpg', link:'#'},
   {src:'images/banner6.jpg', link:'#'},
 ];
-
-
 
 const PAYMENTS = [
   {label:'Touch ’n Go eWallet'},
@@ -456,20 +436,9 @@ let autoTimer = setInterval(()=>{ bannerIndex = (bannerIndex + 1) % BANNERS.leng
 document.getElementById('bannerBox').addEventListener('mouseenter', ()=>clearInterval(autoTimer));
 document.getElementById('bannerBox').addEventListener('mouseleave', ()=>{ autoTimer = setInterval(()=>{ bannerIndex = (bannerIndex + 1) % BANNERS.length; swapBanner(); }, 4500); });
 
-/* ---------------- Quick Links Render ---------------- */
-function renderQuickLinks(){
-  const box = document.getElementById('quickLinks');
-  box.innerHTML = QUICK_LINKS.map(q=>`
-    <a class="ql-card" href="${q.link}" target="_blank" rel="noopener">
-      <div class="ql-icon" style="background:${q.color}">${q.icon}</div>
-      <div class="ql-name">${q.name}</div>
-    </a>
-  `).join('');
-}
-
 /* ---------------- Payments Ticker Render ---------------- */
 function renderPayments(){
-  // We duplicate the list so the marquee can loop smoothly at 50%
+  // Duplicate the list so the marquee can loop smoothly at 50%
   const line = document.getElementById('payLine');
   const all = [...PAYMENTS, ...PAYMENTS];
   line.innerHTML = all.map(p=>`<div class="pay-logo">${p.label}</div>`).join('');
@@ -480,7 +449,6 @@ document.addEventListener('DOMContentLoaded',()=>{
   refreshNavbar();
   loadGames();
   renderDots();
-  renderQuickLinks();
   renderPayments();
   swapBanner(); // initial
 });
