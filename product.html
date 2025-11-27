@@ -32,6 +32,30 @@
   .price-line{display:flex;gap:8px;align-items:center;margin-top:6px}
   .tag-off{font-size:.72rem;font-weight:800;color:#0ea5e9;background:#eaf6ff;border-radius:6px;padding:2px 6px}
 
+  /* OUT OF STOCK STYLING */
+  .pkg.disabled {
+    opacity: 0.6;
+    background-color: #f9f9f9;
+    border-color: #eee;
+    pointer-events: none;
+    cursor: not-allowed;
+    position: relative;
+    overflow: hidden;
+  }
+  .pkg.disabled::after {
+    content: "OUT OF STOCK";
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%) rotate(-10deg);
+    border: 2px solid #ef4444;
+    color: #ef4444;
+    font-weight: 900;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    background: rgba(255,255,255,0.9);
+  }
+
   input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
   input[type=number]{-moz-appearance:textfield}
 </style>
@@ -139,14 +163,22 @@
           const d = Number(pkg.discount_pct||0);
           const base = Number(pkg.price).toFixed(2);
           const after = effPrice(pkg).toFixed(2);
+          
+          // Stock Logic
+          const stock = (pkg.stock !== undefined && pkg.stock !== null) ? Number(pkg.stock) : 999;
+          const isOOS = stock <= 0;
+          const disabledClass = isOOS ? 'disabled' : '';
+          const clickAction = isOOS ? '' : `selectPackage(this, ${JSON.stringify(pkg).replace(/'/g,"&apos;")})`;
+          
           return `
-          <div class="pkg" onclick='selectPackage(this, ${JSON.stringify(pkg).replace(/'/g,"&apos;")})'>
+          <div class="pkg ${disabledClass}" onclick='${clickAction}'>
             <strong>${pkg.label}</strong>
             <div class="price-line">
               ${d>0 ? `<span class="price-old">RM ${base}</span>` : ``}
               <span class="price-new">RM ${after}</span>
               ${d>0 ? `<span class="tag-off">-${d}%</span>` : ``}
             </div>
+            ${!isOOS && stock < 10 ? `<div style="font-size:0.75rem; color:#d97706; margin-top:4px;">Only ${stock} left!</div>` : ''}
           </div>`;
         }).join('');
       }else{
@@ -173,6 +205,12 @@
 
   function handlePurchase(isBuyNow){
     if(!selectedPackage) return alert('Please select a package.');
+    
+    // Client-side Stock Check (optional backup, main check is on server)
+    const currentStock = (selectedPackage.stock !== undefined) ? selectedPackage.stock : 999;
+    const qty = parseInt(qtyEl.value)||1;
+    if(qty > currentStock) return alert(`Sorry, only ${currentStock} units available.`);
+
     if(needsUID && !document.getElementById('uidInput').value.trim()) return alert('Please enter your User ID.');
 
     const unitPrice = effPrice(selectedPackage);
@@ -181,7 +219,7 @@
       gameName: gameName,
       pkgLabel: selectedPackage.label,
       price: unitPrice,               // use discounted price in cart/checkout
-      qty: parseInt(qtyEl.value)||1,
+      qty: qty,
       uid: needsUID ? document.getElementById('uidInput').value.trim() : null
     };
 

@@ -31,16 +31,22 @@ async function getOrder(env, orderId) {
   ).bind(orderId).first();
 }
 
-// --- ensure schema has discount_pct ---
-async function ensureDiscountColumn(env) {
+// --- Ensure Schema Columns (Updated for Stock) ---
+async function ensureColumns(env) {
   try {
     const { results } = await env.DB.prepare('PRAGMA table_info(packages)').all();
-    const has = results?.some(r => r.name === 'discount_pct');
-    if (!has) {
+    
+    // Check for discount_pct
+    if (!results?.some(r => r.name === 'discount_pct')) {
       await env.DB.prepare('ALTER TABLE packages ADD COLUMN discount_pct REAL NOT NULL DEFAULT 0').run();
     }
+    
+    // Check for stock
+    if (!results?.some(r => r.name === 'stock')) {
+      await env.DB.prepare('ALTER TABLE packages ADD COLUMN stock INTEGER NOT NULL DEFAULT 0').run();
+    }
   } catch (e) {
-    console.error('ensureDiscountColumn error:', e);
+    console.error('ensureColumns error:', e);
   }
 }
 
@@ -131,7 +137,7 @@ async function handleTopup(request, env) {
 }
 
 /**
- * Create an order
+ * Create an order (Updated with Stock Check)
  */
 async function handleCreateOrder(request, env) {
   const body = await request.json();
@@ -144,6 +150,30 @@ async function handleCreateOrder(request, env) {
     return Response.json({ success: false, message: 'Invalid order payload.' }, { status: 400 });
   }
 
+  // 1. CHECK STOCK
+  // Loop through items and check availability in DB based on Game Name + Pkg Label
+  for (const it of items) {
+    const qty = Number(it.qty || 1);
+    // Attempt to find the package and its stock
+    const pkg = await env.DB.prepare(`
+      SELECT p.stock, p.label 
+      FROM packages p 
+      JOIN games g ON p.game_id = g.id 
+      WHERE g.name = ? AND p.label = ?
+    `).bind(it.gameName, it.pkgLabel).first();
+
+    // If package exists and stock is tracked
+    if (pkg) {
+      if (pkg.stock < qty) {
+        return Response.json({ 
+          success: false, 
+          message: `Out of stock: ${pkg.label}. Available: ${pkg.stock}` 
+        }, { status: 400 });
+      }
+    }
+  }
+
+  // 2. PAYMENT
   if (method === 'LF Wallet') {
     const deb = await debitWallet(env, email, total);
     if (!deb.ok) {
@@ -153,15 +183,28 @@ async function handleCreateOrder(request, env) {
 
   const orderId = nowOrderId();
 
-  // Insert order
+  // 3. CREATE ORDER
   await env.DB.prepare(
     'INSERT INTO orders (id, user_email, total, payment_method, status) VALUES (?, ?, ?, ?, ?)'
   ).bind(orderId, email, total, method, 'Processing').run();
 
-  // Insert items
+  // 4. INSERT ITEMS AND DEDUCT STOCK
   for (const it of items) {
     const qty = Number(it.qty || 1);
     const price = Number(it.price || 0);
+
+    // Deduct stock
+    await env.DB.prepare(`
+      UPDATE packages 
+      SET stock = stock - ? 
+      WHERE id IN (
+        SELECT p.id FROM packages p 
+        JOIN games g ON p.game_id = g.id 
+        WHERE g.name = ? AND p.label = ?
+      )
+    `).bind(qty, it.gameName, it.pkgLabel).run();
+
+    // Insert Item record
     await env.DB.prepare(
       `INSERT INTO order_items (order_id, game_name, package_label, quantity, price_at_purchase, uid, pin)
        VALUES (?, ?, ?, ?, ?, ?, ?)`
@@ -275,7 +318,7 @@ export default {
         response = Response.json(results);
 
       } else if (url.pathname === '/api/admin/package' && request.method === 'POST') {
-        await ensureDiscountColumn(env);
+        await ensureColumns(env);
         const data = await request.json();
 
         // Normalize region for NOT NULL column
@@ -283,13 +326,15 @@ export default {
 
         const id = `${data.game_id}-${(data.label || '').replace(/\s+/g, '-')}-${Date.now().toString(36)}`;
         const discount = Number(data.discount_pct || 0);
+        const stock = parseInt(data.stock || 0);
+
         await env.DB.prepare(
-          'INSERT INTO packages (id, game_id, region_key, label, price, discount_pct) VALUES (?, ?, ?, ?, ?, ?)'
-        ).bind(id, data.game_id, region, data.label, Number(data.price), discount).run();
+          'INSERT INTO packages (id, game_id, region_key, label, price, discount_pct, stock) VALUES (?, ?, ?, ?, ?, ?, ?)'
+        ).bind(id, data.game_id, region, data.label, Number(data.price), discount, stock).run();
         response = Response.json({ success: true });
 
       } else if (url.pathname === '/api/admin/package' && request.method === 'PUT') {
-        await ensureDiscountColumn(env);
+        await ensureColumns(env);
         const data = await request.json();
         const id = data.id;
         if (!id) {
@@ -300,9 +345,11 @@ export default {
           const discount = (data.discount_pct === undefined || data.discount_pct === null)
             ? null
             : Number(data.discount_pct);
+          const stock = (data.stock === undefined || data.stock === null) ? null : parseInt(data.stock);
+
           await env.DB.prepare(
-            'UPDATE packages SET label = COALESCE(?, label), price = COALESCE(?, price), discount_pct = COALESCE(?, discount_pct) WHERE id = ?'
-          ).bind(label, price, discount, id).run();
+            'UPDATE packages SET label = COALESCE(?, label), price = COALESCE(?, price), discount_pct = COALESCE(?, discount_pct), stock = COALESCE(?, stock) WHERE id = ?'
+          ).bind(label, price, discount, stock, id).run();
           response = Response.json({ success: true });
         }
 
