@@ -34,26 +34,11 @@
 
   /* OUT OF STOCK STYLING */
   .pkg.disabled {
-    opacity: 0.6;
-    background-color: #f9f9f9;
-    border-color: #eee;
-    pointer-events: none;
+    opacity: 0.5; /* Greys out the card */
+    background-color: #f5f5f5;
+    pointer-events: none; /* Prevents selection */
     cursor: not-allowed;
-    position: relative;
-    overflow: hidden;
-  }
-  .pkg.disabled::after {
-    content: "OUT OF STOCK";
-    position: absolute;
-    top: 50%; left: 50%;
-    transform: translate(-50%, -50%) rotate(-10deg);
-    border: 2px solid #ef4444;
-    color: #ef4444;
-    font-weight: 900;
-    padding: 4px 10px;
-    border-radius: 4px;
-    font-size: 0.9rem;
-    background: rgba(255,255,255,0.9);
+    border-color: #ddd;
   }
 
   input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
@@ -170,6 +155,14 @@
           const disabledClass = isOOS ? 'disabled' : '';
           const clickAction = isOOS ? '' : `selectPackage(this, ${JSON.stringify(pkg).replace(/'/g,"&apos;")})`;
           
+          // Determine status text
+          let statusLine = '';
+          if (isOOS) {
+            statusLine = '<div style="color:#ef4444; font-weight:800; font-size:0.85rem; margin-top:6px; text-transform:uppercase;">Out of Stock</div>';
+          } else if (stock < 10) {
+            statusLine = `<div style="font-size:0.75rem; color:#d97706; margin-top:4px;">Only ${stock} left!</div>`;
+          }
+
           return `
           <div class="pkg ${disabledClass}" onclick='${clickAction}'>
             <strong>${pkg.label}</strong>
@@ -178,7 +171,7 @@
               <span class="price-new">RM ${after}</span>
               ${d>0 ? `<span class="tag-off">-${d}%</span>` : ``}
             </div>
-            ${!isOOS && stock < 10 ? `<div style="font-size:0.75rem; color:#d97706; margin-top:4px;">Only ${stock} left!</div>` : ''}
+            ${statusLine}
           </div>`;
         }).join('');
       }else{
@@ -206,7 +199,7 @@
   function handlePurchase(isBuyNow){
     if(!selectedPackage) return alert('Please select a package.');
     
-    // Client-side Stock Check (optional backup, main check is on server)
+    // Client-side Stock Check
     const currentStock = (selectedPackage.stock !== undefined) ? selectedPackage.stock : 999;
     const qty = parseInt(qtyEl.value)||1;
     if(qty > currentStock) return alert(`Sorry, only ${currentStock} units available.`);
