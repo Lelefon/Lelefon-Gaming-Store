@@ -15,9 +15,9 @@
     .form-group { margin-bottom: 12px; }
     .form-group label { display: block; margin-bottom: 4px; font-weight: bold; }
     .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px; }
-    /* Updated Grid for Stock Column */
+    /* Grid for Package List */
     .package-item { border-bottom: 1px solid #eee; padding: 8px 0; display: grid; grid-template-columns: 1fr 100px 80px 80px 160px; gap: 8px; align-items: center; }
-    .admin-controls { margin-top: 20px; }
+    .admin-controls { margin-top: 20px; border-top: 1px solid #eee; padding-top: 20px; }
     .hidden { display: none; }
     #adminLogin { max-width: 400px; margin: 50px auto; }
     .btn-row { display: flex; gap: 10px; margin-top: 8px; }
@@ -38,6 +38,9 @@
     .status-Refunded { background:#e9f2ff; border-color:#b7d2ff; }
     .btn[disabled], .btn.ghost[disabled] { opacity:.5; pointer-events:none; }
     .pkg-actions { display:flex; gap:8px; justify-content:flex-end; }
+    
+    /* Navbar Auth Area styling */
+    #authArea { display: inline-flex; align-items: center; gap: 10px; }
   </style>
 </head>
 <body>
@@ -49,7 +52,10 @@
           <h1>Lelefon Gaming - Admin</h1>
         </a>
       </div>
-      <nav class="right-area"><a href="/">Home</a><span id="authArea"></span></nav>
+      <nav class="right-area">
+        <a href="/">Home</a>
+        <span id="authArea"></span>
+      </nav>
     </div>
   </header>
 
@@ -151,7 +157,7 @@ const authAreaEl = document.getElementById('authArea');
 const gameSelectEl = document.getElementById('gameSelect');
 const logoutAdminBtn = document.getElementById('logoutAdmin');
 
-// LOGIN HANDLER
+// --- LOGIN HANDLER ---
 async function handleAdminLogin(event) {
   event.preventDefault();
   const email = document.getElementById('adminUser').value.trim();
@@ -179,19 +185,32 @@ async function handleAdminLogin(event) {
 }
 document.querySelector('#adminLogin form').addEventListener('submit', handleAdminLogin);
 
-// Logout
-logoutAdminBtn.addEventListener('click', () => {
+// --- LOGOUT HANDLER ---
+function performLogout() {
   sessionStorage.removeItem('isAdmin');
   adminLoginEl.classList.remove('hidden');
   adminContentEl.classList.add('hidden');
   authAreaEl.innerHTML = '';
-});
+  // Clear form fields
+  document.getElementById('adminUser').value = '';
+  document.getElementById('adminPass').value = '';
+}
 
-// Show admin panel
+// Bind bottom logout button
+logoutAdminBtn.addEventListener('click', performLogout);
+
+// --- SHOW PANEL ---
 function showAdminPanel() {
   adminLoginEl.classList.add('hidden');
   adminContentEl.classList.remove('hidden');
-  authAreaEl.innerHTML = `<span class="pill">Admin Logged In</span>`;
+  
+  // Add Logout button to Header area
+  authAreaEl.innerHTML = `
+    <span class="pill">Admin Logged In</span>
+    <button id="navLogout" class="btn ghost" style="padding:4px 10px; font-size:0.8rem;">Logout</button>
+  `;
+  document.getElementById('navLogout').addEventListener('click', performLogout);
+
   loadGames();
   loadUsers();
   loadOrders();
