@@ -6,44 +6,275 @@
   <title>Lelefon Gaming - Admin Panel</title>
   <link rel="icon" type="image/png" href="images/lelefonlogo2.png?v=2" sizes="192x192">
   <link rel="stylesheet" href="homestyle.css">
-  <style>
-    .wrap { width: min(1200px, 92vw); margin: 24px auto; }
-    .card { border: 1px solid var(--border); border-radius: 12px; background: #fff; padding: 16px; margin-bottom: 16px; }
-    .table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-    .table th, .table td { border: 1px solid var(--border); padding: 8px; text-align: left; vertical-align: top; }
-    .table th { background-color: var(--bg-soft); font-weight: bold; }
-    .form-group { margin-bottom: 12px; }
-    .form-group label { display: block; margin-bottom: 4px; font-weight: bold; }
-    .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px; }
-    /* Grid for Package List */
-    .package-item { border-bottom: 1px solid #eee; padding: 8px 0; display: grid; grid-template-columns: 1fr 100px 80px 80px 160px; gap: 8px; align-items: center; }
-    .admin-controls { margin-top: 20px; border-top: 1px solid #eee; padding-top: 20px; }
-    .hidden { display: none; }
-    #adminLogin { max-width: 400px; margin: 50px auto; }
-    .btn-row { display: flex; gap: 10px; margin-top: 8px; }
-    .title { font-weight: 800; font-size: 1.4rem; margin-bottom: 6px; }
-    .section-header { font-size: 1.5rem; margin-bottom: 10px; border-bottom: 2px solid #f0f0f0; padding-bottom: 5px; }
-    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 
-    .order-items { background:#fafafa; border:1px dashed var(--border); border-radius:8px; padding:10px; margin:8px 0 0; }
-    .order-items h4 { margin:2px 0 8px; }
-    .pin-row { display:flex; gap:6px; align-items:center; }
-    .pin-row input { width: 260px; }
+  <style>
+    /* =========================================================
+       Layout
+    ========================================================= */
+    .wrap {
+      width: min(1200px, 92vw);
+      margin: 24px auto;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    @media (max-width: 960px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: #fff;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+
+    .title {
+      font-weight: 800;
+      font-size: 1.4rem;
+      margin-bottom: 6px;
+    }
+
+    .section-header {
+      font-size: 1.5rem;
+      margin-bottom: 10px;
+      border-bottom: 2px solid #f0f0f0;
+      padding-bottom: 5px;
+    }
+
+    .hidden { display: none; }
+
+    /* =========================================================
+       Forms
+    ========================================================= */
+    .form-group { margin-bottom: 12px; }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 4px;
+      font-weight: bold;
+    }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+    }
+
+    #adminLogin {
+      max-width: 400px;
+      margin: 50px auto;
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 8px;
+      flex-wrap: wrap;
+    }
+
+    /* =========================================================
+       Tables
+    ========================================================= */
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+
+    .table th,
+    .table td {
+      border: 1px solid var(--border);
+      padding: 8px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    .table th {
+      background-color: var(--bg-soft);
+      font-weight: bold;
+    }
+
+    /* =========================================================
+       Package List Grid
+    ========================================================= */
+    .pkg-header-row {
+      display: grid;
+      grid-template-columns: 1fr 100px 80px 80px 190px;
+      gap: 8px;
+      font-weight: bold;
+      margin-bottom: 6px;
+      padding: 0 8px;
+      align-items: center;
+    }
+
+    .package-item {
+      border-bottom: 1px solid #eee;
+      padding: 10px 8px;
+      display: grid;
+      grid-template-columns: 1fr 100px 80px 80px 190px;
+      gap: 8px;
+      align-items: center;
+      border-radius: 10px;
+      transition: background .15s ease;
+    }
+
+    .package-item input {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      outline: none;
+    }
+
+    .pkg-actions {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .status-area {
+      display: inline-flex;
+      gap: 6px;
+      align-items: center;
+      margin-right: 6px;
+    }
+
+    /* =========================================================
+       Admin bottom controls
+    ========================================================= */
+    .admin-controls {
+      margin-top: 20px;
+      border-top: 1px solid #eee;
+      padding-top: 20px;
+    }
+
+    /* =========================================================
+       Order management
+    ========================================================= */
+    .order-items {
+      background:#fafafa;
+      border:1px dashed var(--border);
+      border-radius:8px;
+      padding:10px;
+      margin:8px 0 0;
+    }
+
+    .order-items h4 {
+      margin:2px 0 8px;
+    }
+
+    .pin-row {
+      display:flex;
+      gap:6px;
+      align-items:center;
+    }
+
+    .pin-row input {
+      width: 260px;
+    }
+
     .muted { opacity: .65; }
 
-    .pill-s { display:inline-block; padding:3px 8px; border-radius:999px; border:1px solid var(--border); font-size:.8rem; }
+    .pill-s {
+      display:inline-block;
+      padding:3px 8px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      font-size:.8rem;
+    }
+
     .status-Processing { background:#fff8e6; border-color:#f3d27a; }
-    .status-Completed { background:#eaf8ef; border-color:#9bd4b0; }
-    .status-Cancelled { background:#fde8e8; border-color:#f3b1b1; }
-    .status-Refunded { background:#e9f2ff; border-color:#b7d2ff; }
-    .btn[disabled], .btn.ghost[disabled] { opacity:.5; pointer-events:none; }
-    .pkg-actions { display:flex; gap:8px; justify-content:flex-end; }
-    
+    .status-Completed  { background:#eaf8ef; border-color:#9bd4b0; }
+    .status-Cancelled  { background:#fde8e8; border-color:#f3b1b1; }
+    .status-Refunded   { background:#e9f2ff; border-color:#b7d2ff; }
+
+    .btn[disabled],
+    .btn.ghost[disabled] {
+      opacity:.5;
+      pointer-events:none;
+    }
+
     /* Navbar Auth Area styling */
-    #authArea { display: inline-flex; align-items: center; gap: 10px; }
+    #authArea {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* =========================================================
+       NEW: Unsaved Changes Highlight + Stock Warnings
+    ========================================================= */
+    .package-item.dirty {
+      background: #fffbe6;
+      border-left: 4px solid #f59e0b;
+    }
+
+    .package-item.out-stock {
+      background: #fee2e2;
+      border-left: 4px solid #dc2626;
+    }
+
+    .package-item.low-stock {
+      background: #fff7ed;
+      border-left: 4px solid #fb923c;
+    }
+
+    .unsaved-badge {
+      font-size: 0.75rem;
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: #f59e0b;
+      color: #fff;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .stock-badge {
+      font-size: 0.75rem;
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .stock-ok  { background:#16a34a; color:#fff; }
+    .stock-low { background:#fb923c; color:#fff; }
+    .stock-out { background:#dc2626; color:#fff; }
+
+    .save-all-row {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin: 10px 0 6px;
+      flex-wrap: wrap;
+    }
+
+    .hint {
+      font-size: .9rem;
+      opacity: .75;
+      margin-top: 6px;
+      line-height: 1.35;
+    }
   </style>
 </head>
+
 <body>
+  <!-- =========================================================
+       Navbar
+  ========================================================= -->
   <header class="navbar">
     <div class="navbar-inner">
       <div class="logo-container">
@@ -52,6 +283,7 @@
           <h1>Lelefon Gaming - Admin</h1>
         </a>
       </div>
+
       <nav class="right-area">
         <a href="/">Home</a>
         <span id="authArea"></span>
@@ -59,20 +291,26 @@
     </div>
   </header>
 
+  <!-- =========================================================
+       Page
+  ========================================================= -->
   <main class="wrap">
-    <!-- Admin Login Form -->
+    <!-- Admin Login -->
     <div id="adminLogin">
       <div class="card">
         <div class="title">Admin Login</div>
+
         <form>
           <div class="form-group">
             <label>Email</label>
             <input id="adminUser" type="email" placeholder="admin@email.com" required>
           </div>
+
           <div class="form-group">
             <label>Password</label>
             <input id="adminPass" type="password" placeholder="••••••••" required>
           </div>
+
           <div class="btn-row">
             <button id="doAdminLogin" type="submit" class="btn primary">Login</button>
           </div>
@@ -80,526 +318,1081 @@
       </div>
     </div>
 
-    <!-- Admin Content Panel -->
+    <!-- Admin Content -->
     <div id="adminContent" class="hidden">
       <h2>Admin Dashboard</h2>
 
       <div class="grid">
+        <!-- =====================================================
+             1. Add/Edit Game
+        ====================================================== -->
         <section class="card">
           <h3 class="section-header">1. Add/Edit Game</h3>
-          <div class="form-group"><label>Game ID</label><input id="gameId" type="text"></div>
-          <div class="form-group"><label>Game Name</label><input id="gameName" type="text"></div>
-          <div class="form-group"><label>Image URL</label><input id="gameImg" type="text" value="images/lelefonlogo2.png"></div>
-          <div class="form-group"><label>Category</label>
+
+          <div class="form-group">
+            <label>Game ID</label>
+            <input id="gameId" type="text">
+          </div>
+
+          <div class="form-group">
+            <label>Game Name</label>
+            <input id="gameName" type="text">
+          </div>
+
+          <div class="form-group">
+            <label>Image URL</label>
+            <input id="gameImg" type="text" value="images/lelefonlogo2.png">
+          </div>
+
+          <div class="form-group">
+            <label>Category</label>
             <select id="gameCat">
               <option value="direct">Direct Topup</option>
               <option value="card">Game Card</option>
             </select>
           </div>
-          <div class="form-group"><label>Options</label>
-            <input type="checkbox" id="gameRegionable"> Has Multiple Regions?
-            <input type="checkbox" id="gameUidReq" checked> Requires UID?
+
+          <div class="form-group">
+            <label>Options</label>
+            <div style="display:flex; gap:18px; align-items:center; flex-wrap:wrap;">
+              <label style="display:flex; gap:8px; align-items:center; font-weight:600;">
+                <input type="checkbox" id="gameRegionable">
+                Has Multiple Regions?
+              </label>
+
+              <label style="display:flex; gap:8px; align-items:center; font-weight:600;">
+                <input type="checkbox" id="gameUidReq" checked>
+                Requires UID?
+              </label>
+            </div>
           </div>
+
           <div class="btn-row">
             <button id="saveGameBtn" class="btn primary" type="button">Save Game</button>
             <button id="deleteGameBtn" class="btn danger" type="button">Delete Game</button>
           </div>
+
+          <div class="hint">
+            Tip: For games without regions, leave <b>Has Multiple Regions</b> unchecked.
+            Packages will be stored under <i>no-region</i>.
+          </div>
         </section>
 
+        <!-- =====================================================
+             2. Manage Packages
+        ====================================================== -->
         <section class="card">
           <h3 class="section-header">2. Manage Packages</h3>
-          <div class="form-group"><label>Select Game</label><select id="gameSelect"></select></div>
+
+          <div class="form-group">
+            <label>Select Game</label>
+            <select id="gameSelect"></select>
+          </div>
+
           <div id="regionArea" class="hidden form-group">
-            <label>Select Region</label><select id="regionSelect"></select>
-            <button id="addRegionBtn" class="btn ghost" style="font-size:0.8rem; margin-top:4px;">+ Add New Region</button>
+            <label>Select Region</label>
+            <select id="regionSelect"></select>
+            <button id="addRegionBtn" class="btn ghost" style="font-size:0.8rem; margin-top:6px;">+ Add New Region</button>
           </div>
+
           <hr/>
-          <div style="display:grid; grid-template-columns: 1fr 100px 80px 80px 160px; gap:8px; font-weight:bold; margin-bottom:5px; padding:0 8px;">
-            <span>Name</span><span>Price</span><span>Disc%</span><span>Stock</span><span>Actions</span>
+
+          <div class="save-all-row">
+            <button id="saveAllPackagesBtn" class="btn" type="button" disabled>
+              Save All Changes
+            </button>
+            <button id="discardAllPackagesBtn" class="btn ghost" type="button" disabled>
+              Discard Changes
+            </button>
           </div>
-          <div id="packageList"><p class="muted">Select a game to see packages.</p></div>
+
+          <div class="pkg-header-row">
+            <span>Name</span>
+            <span>Price</span>
+            <span>Disc%</span>
+            <span>Stock</span>
+            <span style="text-align:right;">Actions</span>
+          </div>
+
+          <div id="packageList">
+            <p class="muted">Select a game to see packages.</p>
+          </div>
+
           <hr/>
+
           <h4>Add New Package</h4>
-          <div class="form-group"><label>Package Name</label><input id="packageName" type="text"></div>
-          <div class="grid" style="grid-template-columns: 1fr 1fr 1fr;">
-              <div class="form-group"><label>Price (MYR)</label><input id="packagePrice" type="number" step="0.01"></div>
-              <div class="form-group"><label>Discount %</label><input id="packageDiscount" type="number" min="0" max="100" step="1" value="0"></div>
-              <div class="form-group"><label>Stock</label><input id="packageStock" type="number" min="0" value="999"></div>
+
+          <div class="form-group">
+            <label>Package Name</label>
+            <input id="packageName" type="text">
           </div>
-          <button id="addPackageBtn" class="btn primary">Add Package</button>
+
+          <div class="grid" style="grid-template-columns: 1fr 1fr 1fr;">
+            <div class="form-group">
+              <label>Price (MYR)</label>
+              <input id="packagePrice" type="number" step="0.01">
+            </div>
+
+            <div class="form-group">
+              <label>Discount %</label>
+              <input id="packageDiscount" type="number" min="0" max="100" step="1" value="0">
+            </div>
+
+            <div class="form-group">
+              <label>Stock</label>
+              <input id="packageStock" type="number" min="0" value="999">
+            </div>
+          </div>
+
+          <button id="addPackageBtn" class="btn primary" type="button">Add Package</button>
+
+          <div class="hint">
+            Stock badge:
+            <span class="stock-badge stock-ok">OK</span>
+            <span class="stock-badge stock-low">LOW</span>
+            <span class="stock-badge stock-out">OUT</span>
+            <br/>
+            Any edited row will turn yellow and show <span class="unsaved-badge">Unsaved</span>.
+          </div>
         </section>
       </div>
 
+      <!-- =====================================================
+           Order Management
+      ====================================================== -->
       <section class="card">
         <h3 class="section-header">Order Management</h3>
         <div id="orderList"><p class="muted">Loading recent orders...</p></div>
       </section>
 
+      <!-- =====================================================
+           Users & Wallet
+      ====================================================== -->
       <section class="card">
         <h3 class="section-header">User & Wallet Management</h3>
         <div id="userList"><p class="muted">Loading users...</p></div>
       </section>
 
+      <!-- Bottom logout -->
       <div class="admin-controls">
         <button id="logoutAdmin" class="btn ghost">Logout</button>
       </div>
     </div>
   </main>
 
-<script>
-const API_BASE_URL = 'https://api.lelefon-67.workers.dev/api';
-let ALL_GAMES = [];
+  <!-- =========================================================
+       Script
+  ========================================================= -->
+  <script>
+    const API_BASE_URL = 'https://api.lelefon-67.workers.dev/api';
+    let ALL_GAMES = [];
 
-// Elements
-const adminLoginEl = document.getElementById('adminLogin');
-const adminContentEl = document.getElementById('adminContent');
-const authAreaEl = document.getElementById('authArea');
-const gameSelectEl = document.getElementById('gameSelect');
-const logoutAdminBtn = document.getElementById('logoutAdmin');
+    // Elements
+    const adminLoginEl = document.getElementById('adminLogin');
+    const adminContentEl = document.getElementById('adminContent');
+    const authAreaEl = document.getElementById('authArea');
 
-// --- LOGIN HANDLER ---
-async function handleAdminLogin(event) {
-  event.preventDefault();
-  const email = document.getElementById('adminUser').value.trim();
-  const password = document.getElementById('adminPass').value.trim();
-  if (!email || !password) return alert('Please fill in both fields.');
+    const gameSelectEl = document.getElementById('gameSelect');
+    const regionAreaEl = document.getElementById('regionArea');
+    const regionSelectEl = document.getElementById('regionSelect');
 
-  try {
-    const response = await fetch(`${API_BASE_URL}/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
-    });
-    if (!response.ok) throw new Error(`Server responded with status: ${response.status}`);
-    const result = await response.json();
-    if (result.role === 'admin') {
-      sessionStorage.setItem('isAdmin', 'true');
-      showAdminPanel();
-    } else {
-      alert(result.message || 'Invalid admin credentials.');
-    }
-  } catch (err) {
-    console.error('Login failed:', err);
-    alert('Login failed. The server might be down or an error occurred.');
-  }
-}
-document.querySelector('#adminLogin form').addEventListener('submit', handleAdminLogin);
+    const packageListEl = document.getElementById('packageList');
 
-// --- LOGOUT HANDLER ---
-function performLogout() {
-  sessionStorage.removeItem('isAdmin');
-  adminLoginEl.classList.remove('hidden');
-  adminContentEl.classList.add('hidden');
-  authAreaEl.innerHTML = '';
-  // Clear form fields
-  document.getElementById('adminUser').value = '';
-  document.getElementById('adminPass').value = '';
-}
+    const logoutAdminBtn = document.getElementById('logoutAdmin');
 
-// Bind bottom logout button
-logoutAdminBtn.addEventListener('click', performLogout);
+    const saveAllPackagesBtn = document.getElementById('saveAllPackagesBtn');
+    const discardAllPackagesBtn = document.getElementById('discardAllPackagesBtn');
 
-// --- SHOW PANEL ---
-function showAdminPanel() {
-  adminLoginEl.classList.add('hidden');
-  adminContentEl.classList.remove('hidden');
-  
-  // Add Logout button to Header area
-  authAreaEl.innerHTML = `
-    <span class="pill">Admin Logged In</span>
-    <button id="navLogout" class="btn ghost" style="padding:4px 10px; font-size:0.8rem;">Logout</button>
-  `;
-  document.getElementById('navLogout').addEventListener('click', performLogout);
+    // Track the currently loaded packages list (for Save All / Discard)
+    let CURRENT_PACKAGES = [];
 
-  loadGames();
-  loadUsers();
-  loadOrders();
-}
+    // =========================
+    //  LOGIN HANDLER
+    // =========================
+    async function handleAdminLogin(event) {
+      event.preventDefault();
 
-// Load games
-async function loadGames() {
-  try {
-    const response = await fetch(`${API_BASE_URL}/games`);
-    ALL_GAMES = await response.json();
-    gameSelectEl.innerHTML = '<option value="">-- Select a Game --</option>' +
-      ALL_GAMES.map(g => `<option value="${g.id}">${g.name}</option>`).join('');
-  } catch (e) {
-    console.error('Failed to load games', e);
-  }
-}
+      const email = document.getElementById('adminUser').value.trim();
+      const password = document.getElementById('adminPass').value.trim();
 
-// Load Users & Wallets
-async function loadUsers() {
-  const userListEl = document.getElementById('userList');
-  try {
-    const response = await fetch(`${API_BASE_URL}/admin/users`);
-    if (!response.ok) throw new Error('Failed to fetch users.');
-    const users = await response.json();
+      if (!email || !password) return alert('Please fill in both fields.');
 
-    if (users.length) {
-      let tableHtml = `<table class="table">
-        <thead><tr><th>Email</th><th>Role</th><th>Balance (MYR)</th><th>Actions</th></tr></thead>
-        <tbody>`;
-      for (const user of users) {
-        tableHtml += `
-          <tr>
-            <td>${user.email}</td>
-            <td>${user.role}</td>
-            <td>${(user.balance || 0).toFixed(2)}</td>
-            <td><button class="btn ghost" onclick="editWallet('${user.email}')">Set Balance</button></td>
-          </tr>`;
+      try {
+        const response = await fetch(`${API_BASE_URL}/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+
+        if (!response.ok) throw new Error(`Server responded with status: ${response.status}`);
+
+        const result = await response.json();
+
+        if (result.role === 'admin') {
+          sessionStorage.setItem('isAdmin', 'true');
+          showAdminPanel();
+        } else {
+          alert(result.message || 'Invalid admin credentials.');
+        }
+      } catch (err) {
+        console.error('Login failed:', err);
+        alert('Login failed. The server might be down or an error occurred.');
       }
-      tableHtml += '</tbody></table>';
-      userListEl.innerHTML = tableHtml;
-    } else {
-      userListEl.innerHTML = '<p>No users found.</p>';
     }
-  } catch (err) {
-    console.error('Failed to load users:', err);
-    userListEl.innerHTML = '<p class="danger">Could not load user data.</p>';
-  }
-}
 
-window.editWallet = async (email) => {
-  const currentBalance = prompt(`Enter new balance for ${email}:`, '0.00');
-  if (currentBalance === null) return;
+    document.querySelector('#adminLogin form').addEventListener('submit', handleAdminLogin);
 
-  const newBalance = parseFloat(currentBalance);
-  if (isNaN(newBalance)) return alert('Invalid number provided.');
+    // =========================
+    //  LOGOUT HANDLER
+    // =========================
+    function performLogout() {
+      sessionStorage.removeItem('isAdmin');
 
-  try {
-    const response = await fetch(`${API_BASE_URL}/admin/wallet`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, newBalance })
-    });
-    if (!response.ok) throw new Error('Server rejected the update.');
-    alert('Wallet updated successfully!');
-    loadUsers();
-  } catch (err) {
-    console.error('Failed to update wallet:', err);
-    alert('An error occurred while updating the wallet.');
-  }
-};
+      adminLoginEl.classList.remove('hidden');
+      adminContentEl.classList.add('hidden');
 
-// Save / Delete game
-document.getElementById('saveGameBtn').addEventListener('click', async () => {
-  const gameData = {
-    id: document.getElementById('gameId').value.trim(),
-    name: document.getElementById('gameName').value.trim(),
-    image_url: document.getElementById('gameImg').value.trim(),
-    category: document.getElementById('gameCat').value,
-    regionable: document.getElementById('gameRegionable').checked,
-    uid_required: document.getElementById('gameUidReq').checked,
-  };
-  if (!gameData.id || !gameData.name) return alert('Game ID and Name are required.');
+      authAreaEl.innerHTML = '';
 
-  await fetch(`${API_BASE_URL}/admin/game`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(gameData)
-  });
-  alert('Game saved successfully!');
-  loadGames();
-});
+      document.getElementById('adminUser').value = '';
+      document.getElementById('adminPass').value = '';
 
-document.getElementById('deleteGameBtn').addEventListener('click', async () => {
-  const id = document.getElementById('gameId').value.trim();
-  if (!id) return alert('Enter the Game ID to delete.');
-  if (!confirm(`Delete game "${id}"? This will also remove its packages and regions.`)) return;
-  const res = await fetch(`${API_BASE_URL}/admin/game?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
-  if (!res.ok) return alert('Failed to delete game.');
-  alert('Game deleted.');
-  document.getElementById('gameId').value = '';
-  loadGames();
-  gameSelectEl.dispatchEvent(new Event('change'));
-});
-
-// Packages & Regions
-gameSelectEl.addEventListener('change', async e => {
-  const gameId = e.target.value;
-  const game = ALL_GAMES.find(g => g.id === gameId);
-  const regionArea = document.getElementById('regionArea');
-
-  if (!game) {
-    regionArea.classList.add('hidden');
-    document.getElementById('packageList').innerHTML = '<p>Select a game to see packages.</p>';
-    return;
-  }
-  if (game.regionable) {
-    regionArea.classList.remove('hidden');
-    await loadRegionsForGame(gameId);
-  } else {
-    regionArea.classList.add('hidden');
-    await loadPackagesForGame(gameId, ''); // IMPORTANT: empty string for no-region games
-  }
-});
-
-async function loadRegionsForGame(gameId) {
-  const res = await fetch(`${API_BASE_URL}/regions?gameId=${encodeURIComponent(gameId)}`);
-  const regions = await res.json();
-  const regionSelectEl = document.getElementById('regionSelect');
-  regionSelectEl.innerHTML = regions.map(r => `<option value="${r.region_key}">${r.name}</option>`).join('');
-  if (regions.length) loadPackagesForGame(gameId, regions[0].region_key);
-  regionSelectEl.onchange = () => loadPackagesForGame(gameId, regionSelectEl.value);
-}
-
-document.getElementById('addRegionBtn').addEventListener('click', async () => {
-  const gameId = gameSelectEl.value;
-  if (!gameId) return alert('Please select a game first.');
-  const regionKey = prompt('Enter region key (e.g., MY)');
-  const regionName = prompt('Enter full region name (e.g., Malaysia)');
-  const flag = prompt('Flag emoji (optional)');
-  if (regionKey && regionName) {
-    await fetch(`${API_BASE_URL}/admin/region`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ game_id: gameId, region_key: regionKey, name: regionName, flag })
-    });
-    alert('Region added!');
-    loadRegionsForGame(gameId);
-  }
-});
-
-async function loadPackagesForGame(gameId, regionKey) {
-  const packageListEl = document.getElementById('packageList');
-  packageListEl.innerHTML = '<p>Loading packages...</p>';
-  const res = await fetch(`${API_BASE_URL}/packages?gameId=${encodeURIComponent(gameId)}&regionKey=${encodeURIComponent(regionKey || '')}`);
-  const packages = await res.json();
-  if (packages.length) {
-    packageListEl.innerHTML = packages.map(pkg => `
-      <div class="package-item">
-        <input id="pkg-label-${pkg.id}" type="text" value="${pkg.label}" placeholder="Name">
-        <input id="pkg-price-${pkg.id}" type="number" step="0.01" value="${(+pkg.price).toFixed(2)}" placeholder="Price">
-        <input id="pkg-disc-${pkg.id}" type="number" min="0" max="100" step="1" value="${+(pkg.discount_pct || 0)}" title="Discount %">
-        <input id="pkg-stock-${pkg.id}" type="number" min="0" value="${pkg.stock !== undefined ? pkg.stock : 0}" title="Stock Qty">
-        <div class="pkg-actions">
-          <button class="btn" onclick="savePackage('${pkg.id}')">Save</button>
-          <button class="btn ghost" onclick="deletePackage('${pkg.id}')">Del</button>
-        </div>
-      </div>`).join('');
-  } else {
-    packageListEl.innerHTML = '<p>No packages found.</p>';
-  }
-}
-
-// Keep helpers to reload the same region after actions
-function getCurrentGameAndRegion() {
-  const gameId = gameSelectEl.value;
-  const game = ALL_GAMES.find(g => g.id === gameId);
-  const regionEl = document.getElementById('regionSelect');
-  const regionKey = game && game.regionable ? (regionEl ? regionEl.value : null) : ''; // empty string for no-region
-  return { gameId, regionKey, game };
-}
-
-window.savePackage = async (id) => {
-  const labelEl = document.getElementById(`pkg-label-${id}`);
-  const priceEl = document.getElementById(`pkg-price-${id}`);
-  const discEl  = document.getElementById(`pkg-disc-${id}`);
-  const stockEl = document.getElementById(`pkg-stock-${id}`);
-
-  const label = labelEl ? labelEl.value.trim() : null;
-  const price = priceEl ? parseFloat(priceEl.value) : null;
-  const discount_pct = discEl ? parseFloat(discEl.value) : null;
-  const stock = stockEl ? parseInt(stockEl.value) : null;
-
-  if (label === '' || price === null || isNaN(price) || discount_pct === null || isNaN(discount_pct) || stock === null || isNaN(stock)) {
-    return alert('Please provide valid fields including Stock.');
-  }
-  try {
-    const res = await fetch(`${API_BASE_URL}/admin/package`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id, label, price, discount_pct, stock })
-    });
-    if (!res.ok) throw new Error('Update failed');
-    alert('Package updated!');
-
-    const { gameId, regionKey } = getCurrentGameAndRegion();
-    await loadPackagesForGame(gameId, regionKey);
-    const regionEl = document.getElementById('regionSelect');
-    if (regionEl && regionKey != null) regionEl.value = regionKey;
-  } catch (e) {
-    console.error(e);
-    alert('Could not update package.');
-  }
-};
-
-window.deletePackage = async id => {
-  if (!confirm('Delete this package?')) return;
-  const { gameId, regionKey } = getCurrentGameAndRegion();
-  await fetch(`${API_BASE_URL}/admin/package?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
-  await loadPackagesForGame(gameId, regionKey);
-  const regionEl = document.getElementById('regionSelect');
-  if (regionEl && regionKey != null) regionEl.value = regionKey;
-};
-
-document.getElementById('addPackageBtn').addEventListener('click', async () => {
-  const { gameId, regionKey, game } = getCurrentGameAndRegion();
-  if (!game) return alert('Select a game first.');
-  const label = document.getElementById('packageName').value.trim();
-  const price = parseFloat(document.getElementById('packagePrice').value);
-  const discount_pct = parseFloat(document.getElementById('packageDiscount').value || '0');
-  const stock = parseInt(document.getElementById('packageStock').value || '0');
-
-  if (!label || isNaN(price) || isNaN(discount_pct) || isNaN(stock)) return alert('Enter all fields including stock.');
-
-  // IMPORTANT: for non-region games, send empty string
-  const sendRegion = game.regionable ? (regionKey || '') : '';
-
-  const res = await fetch(`${API_BASE_URL}/admin/package`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ game_id: gameId, region_key: sendRegion, label, price, discount_pct, stock })
-  });
-  if (!res.ok) {
-    const t = await res.text().catch(()=> '');
-    alert('Failed to add package.' + (t ? `\n${t}` : ''));
-    return;
-  }
-
-  alert('Package added!');
-  document.getElementById('packageName').value = '';
-  document.getElementById('packagePrice').value = '';
-  document.getElementById('packageDiscount').value = '0';
-  document.getElementById('packageStock').value = '999';
-
-  await loadPackagesForGame(gameId, sendRegion);
-  const regionEl = document.getElementById('regionSelect');
-  if (regionEl && sendRegion != null) regionEl.value = sendRegion;
-});
-
-// ---------- Order Management ----------
-async function loadOrders(){
-  const el = document.getElementById('orderList');
-  el.innerHTML = '<p class="muted">Loading recent orders...</p>';
-  try {
-    const res = await fetch(`${API_BASE_URL}/admin/orders`);
-    if (!res.ok) throw new Error('Failed to load orders.');
-    const orders = await res.json();
-    if (!orders.length) {
-      el.innerHTML = '<p>No orders yet.</p>';
-      return;
+      CURRENT_PACKAGES = [];
+      ALL_GAMES = [];
     }
-    let html = `<table class="table">
-      <thead>
-        <tr>
-          <th>Order ID</th>
-          <th>User</th>
-          <th>Total (MYR)</th>
-          <th>Method</th>
-          <th>Status</th>
-          <th>Created</th>
-          <th>Actions</th>
-        </tr>
-      </thead><tbody>`;
-    for (const o of orders) {
-      const isProcessing = o.status === 'Processing';
-      const isCancelled  = o.status === 'Cancelled';
 
-      html += `<tr id="row-${o.id}">
-        <td><strong>${o.id}</strong></td>
-        <td>${o.user_email}</td>
-        <td>${(+o.total).toFixed(2)}</td>
-        <td>${o.payment_method}</td>
-        <td><span class="pill-s status-${o.status}">${o.status}</span></td>
-        <td>${o.created_at}</td>
-        <td>
-          <button class="btn ghost" onclick="toggleOrder('${o.id}')">View</button>
-          <button class="btn"      onclick="completeOrder('${o.id}')" ${(!isProcessing)?'disabled':''}>Complete</button>
-          <button class="btn ghost" onclick="cancelOrder('${o.id}')"   ${(!isProcessing)?'disabled':''}>Cancel</button>
-          <button class="btn danger" onclick="refundOrder('${o.id}')"  ${(!isCancelled)?'disabled':''}>Refund</button>
-        </td>
-      </tr>
-      <tr id="items-${o.id}" class="hidden"><td colspan="7"><div class="order-items" id="itemsBox-${o.id}">Loading items…</div></td></tr>`;
+    logoutAdminBtn.addEventListener('click', performLogout);
+
+    // =========================
+    //  SHOW PANEL
+    // =========================
+    function showAdminPanel() {
+      adminLoginEl.classList.add('hidden');
+      adminContentEl.classList.remove('hidden');
+
+      authAreaEl.innerHTML = `
+        <span class="pill">Admin Logged In</span>
+        <button id="navLogout" class="btn ghost" style="padding:4px 10px; font-size:0.8rem;">Logout</button>
+      `;
+
+      document.getElementById('navLogout').addEventListener('click', performLogout);
+
+      loadGames();
+      loadUsers();
+      loadOrders();
     }
-    html += '</tbody></table>';
-    el.innerHTML = html;
-  } catch (err) {
-    console.error(err);
-    el.innerHTML = '<p class="danger">Could not load orders.</p>';
-  }
-}
 
-window.toggleOrder = async (orderId) => {
-  const row = document.getElementById(`items-${orderId}`);
-  row.classList.toggle('hidden');
-  if (!row.classList.contains('hidden')) {
-    const box = document.getElementById(`itemsBox-${orderId}`);
-    box.innerHTML = 'Loading items…';
-    try {
-      const res = await fetch(`${API_BASE_URL}/admin/order-items?orderId=${encodeURIComponent(orderId)}`);
-      const items = await res.json();
-      if (!items.length) { box.innerHTML = '<div class="muted">No items.</div>'; return; }
-      box.innerHTML = `
-        <h4>Items</h4>
-        <table class="table">
-          <thead><tr><th>#</th><th>Game</th><th>Package</th><th>Qty</th><th>Price</th><th>UID</th><th>PIN (for card)</th></tr></thead>
-          <tbody>
-            ${items.map(it => `
+    // =========================
+    //  Load Games
+    // =========================
+    async function loadGames() {
+      try {
+        const response = await fetch(`${API_BASE_URL}/games`);
+        ALL_GAMES = await response.json();
+
+        gameSelectEl.innerHTML =
+          '<option value="">-- Select a Game --</option>' +
+          ALL_GAMES.map(g => `<option value="${g.id}">${g.name}</option>`).join('');
+
+      } catch (e) {
+        console.error('Failed to load games', e);
+        gameSelectEl.innerHTML = '<option value="">(Failed to load games)</option>';
+      }
+    }
+
+    // =========================
+    //  Load Users & Wallets
+    // =========================
+    async function loadUsers() {
+      const userListEl = document.getElementById('userList');
+      try {
+        const response = await fetch(`${API_BASE_URL}/admin/users`);
+        if (!response.ok) throw new Error('Failed to fetch users.');
+
+        const users = await response.json();
+
+        if (users.length) {
+          let tableHtml = `
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Email</th>
+                  <th>Role</th>
+                  <th>Balance (MYR)</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+          `;
+
+          for (const user of users) {
+            tableHtml += `
               <tr>
-                <td>${it.id}</td>
-                <td>${it.game_name}</td>
-                <td>${it.package_label}</td>
-                <td>${it.quantity}</td>
-                <td>${(+it.price_at_purchase).toFixed(2)}</td>
-                <td>${it.uid || '-'}</td>
+                <td>${user.email}</td>
+                <td>${user.role}</td>
+                <td>${(user.balance || 0).toFixed(2)}</td>
                 <td>
-                  <div class="pin-row">
-                    <input type="text" id="pin-${orderId}-${it.id}" placeholder="Enter PIN…" value="${it.pin || ''}">
-                    <button class="btn ghost" onclick="savePin('${orderId}', ${it.id})">Save</button>
-                  </div>
+                  <button class="btn ghost" onclick="editWallet('${user.email}')">Set Balance</button>
                 </td>
               </tr>
-            `).join('')}
-          </tbody>
-        </table>`;
-    } catch(e) {
-      box.innerHTML = '<div class="danger">Failed to load items.</div>';
+            `;
+          }
+
+          tableHtml += `
+              </tbody>
+            </table>
+          `;
+
+          userListEl.innerHTML = tableHtml;
+        } else {
+          userListEl.innerHTML = '<p>No users found.</p>';
+        }
+      } catch (err) {
+        console.error('Failed to load users:', err);
+        userListEl.innerHTML = '<p class="danger">Could not load user data.</p>';
+      }
     }
-  }
-};
 
-window.savePin = async (orderId, itemId) => {
-  const input = document.getElementById(`pin-${orderId}-${itemId}`);
-  try {
-    const res = await fetch(`${API_BASE_URL}/admin/order/pin`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ order_id: orderId, item_id: itemId, pin: input.value.trim() })
+    window.editWallet = async (email) => {
+      const currentBalance = prompt(`Enter new balance for ${email}:`, '0.00');
+      if (currentBalance === null) return;
+
+      const newBalance = parseFloat(currentBalance);
+      if (isNaN(newBalance)) return alert('Invalid number provided.');
+
+      try {
+        const response = await fetch(`${API_BASE_URL}/admin/wallet`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, newBalance })
+        });
+
+        if (!response.ok) throw new Error('Server rejected the update.');
+        alert('Wallet updated successfully!');
+        loadUsers();
+      } catch (err) {
+        console.error('Failed to update wallet:', err);
+        alert('An error occurred while updating the wallet.');
+      }
+    };
+
+    // =========================
+    //  Save / Delete Game
+    // =========================
+    document.getElementById('saveGameBtn').addEventListener('click', async () => {
+      const gameData = {
+        id: document.getElementById('gameId').value.trim(),
+        name: document.getElementById('gameName').value.trim(),
+        image_url: document.getElementById('gameImg').value.trim(),
+        category: document.getElementById('gameCat').value,
+        regionable: document.getElementById('gameRegionable').checked,
+        uid_required: document.getElementById('gameUidReq').checked,
+      };
+
+      if (!gameData.id || !gameData.name) return alert('Game ID and Name are required.');
+
+      const res = await fetch(`${API_BASE_URL}/admin/game`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(gameData)
+      });
+
+      if (!res.ok) {
+        alert('Failed to save game.');
+        return;
+      }
+
+      alert('Game saved successfully!');
+      loadGames();
     });
-    if (!res.ok) throw new Error('Failed to save PIN.');
-    alert('PIN saved.');
-  } catch(e) {
-    alert('Could not save PIN.');
-  }
-};
 
-async function changeStatus(orderId, endpoint, successMsg){
-  const btnCell = document.querySelector(`#row-${orderId} td:last-child`);
-  const old = btnCell.innerHTML;
-  btnCell.innerHTML = '<span class="muted">Processing…</span>';
-  try {
-    const res = await fetch(`${API_BASE_URL}${endpoint}`, {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ order_id: orderId })
+    document.getElementById('deleteGameBtn').addEventListener('click', async () => {
+      const id = document.getElementById('gameId').value.trim();
+      if (!id) return alert('Enter the Game ID to delete.');
+
+      if (!confirm(`Delete game "${id}"? This will also remove its packages and regions.`)) return;
+
+      const res = await fetch(`${API_BASE_URL}/admin/game?id=${encodeURIComponent(id)}`, {
+        method: 'DELETE'
+      });
+
+      if (!res.ok) return alert('Failed to delete game.');
+
+      alert('Game deleted.');
+
+      document.getElementById('gameId').value = '';
+      document.getElementById('gameName').value = '';
+
+      loadGames();
+
+      // refresh current selection
+      gameSelectEl.dispatchEvent(new Event('change'));
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'Failed.');
-    alert(successMsg);
-    loadOrders(); // refresh table
-  } catch(e) {
-    alert(e.message || 'Action failed.');
-    btnCell.innerHTML = old;
-  }
-}
 
-window.completeOrder = (orderId)=> changeStatus(orderId, '/admin/order/complete', 'Order marked as Completed.');
-window.cancelOrder   = (orderId)=> changeStatus(orderId, '/admin/order/cancel',   'Order marked as Cancelled.');
-window.refundOrder   = (orderId)=> changeStatus(orderId, '/admin/order/refund',   'Order refunded.');
+    // =========================
+    //  Packages & Regions
+    // =========================
+    gameSelectEl.addEventListener('change', async (e) => {
+      const gameId = e.target.value;
+      const game = ALL_GAMES.find(g => g.id === gameId);
 
-if (sessionStorage.getItem('isAdmin') === 'true') showAdminPanel();
-</script>
+      // Reset bulk buttons
+      setBulkButtonsState(false);
+
+      if (!game) {
+        regionAreaEl.classList.add('hidden');
+        packageListEl.innerHTML = '<p class="muted">Select a game to see packages.</p>';
+        CURRENT_PACKAGES = [];
+        return;
+      }
+
+      if (Number(game.regionable) === 1 || game.regionable === true) {
+        regionAreaEl.classList.remove('hidden');
+        await loadRegionsForGame(gameId);
+      } else {
+        regionAreaEl.classList.add('hidden');
+        // IMPORTANT: For non-region games we use '' consistently
+        await loadPackagesForGame(gameId, '');
+      }
+    });
+
+    async function loadRegionsForGame(gameId) {
+      try {
+        const res = await fetch(`${API_BASE_URL}/regions?gameId=${encodeURIComponent(gameId)}`);
+        if (!res.ok) throw new Error('Failed to load regions');
+
+        const regions = await res.json();
+
+        if (!regions.length) {
+          regionSelectEl.innerHTML = '';
+          packageListEl.innerHTML = '<p class="muted">No regions found. Add a region first.</p>';
+          CURRENT_PACKAGES = [];
+          setBulkButtonsState(false);
+          return;
+        }
+
+        regionSelectEl.innerHTML = regions
+          .map(r => `<option value="${r.region_key}">${r.name}</option>`)
+          .join('');
+
+        // load first region by default
+        await loadPackagesForGame(gameId, regions[0].region_key);
+
+        regionSelectEl.onchange = async () => {
+          setBulkButtonsState(false);
+          await loadPackagesForGame(gameId, regionSelectEl.value);
+        };
+
+      } catch (err) {
+        console.error(err);
+        packageListEl.innerHTML = '<p class="danger">Could not load regions.</p>';
+      }
+    }
+
+    document.getElementById('addRegionBtn').addEventListener('click', async () => {
+      const gameId = gameSelectEl.value;
+      if (!gameId) return alert('Please select a game first.');
+
+      const regionKey = prompt('Enter region key (e.g., MY)');
+      const regionName = prompt('Enter full region name (e.g., Malaysia)');
+      const flag = prompt('Flag emoji (optional)');
+
+      if (regionKey && regionName) {
+        const res = await fetch(`${API_BASE_URL}/admin/region`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            game_id: gameId,
+            region_key: regionKey,
+            name: regionName,
+            flag
+          })
+        });
+
+        if (!res.ok) {
+          alert('Failed to add region.');
+          return;
+        }
+
+        alert('Region added!');
+        await loadRegionsForGame(gameId);
+      }
+    });
+
+    // =========================
+    //  Render packages
+    // =========================
+    function renderPackages(packages) {
+      CURRENT_PACKAGES = packages || [];
+
+      if (!packages.length) {
+        packageListEl.innerHTML = '<p class="muted">No packages found.</p>';
+        setBulkButtonsState(false);
+        return;
+      }
+
+      // IMPORTANT: store full original object in data-original (escaped)
+      packageListEl.innerHTML = packages.map(pkg => {
+        const safeOriginal = JSON.stringify(pkg).replace(/"/g, '&quot;');
+        const stockVal = (pkg.stock !== undefined && pkg.stock !== null) ? pkg.stock : 0;
+        const discVal = (pkg.discount_pct !== undefined && pkg.discount_pct !== null) ? pkg.discount_pct : 0;
+
+        return `
+          <div class="package-item"
+               data-id="${pkg.id}"
+               data-original="${safeOriginal}">
+            <input class="pkg-label" type="text" value="${pkg.label || ''}" placeholder="Name">
+            <input class="pkg-price" type="number" step="0.01" value="${Number(pkg.price || 0).toFixed(2)}" placeholder="Price">
+            <input class="pkg-disc" type="number" min="0" max="100" step="1" value="${Number(discVal)}" title="Discount %">
+            <input class="pkg-stock" type="number" min="0" step="1" value="${Number(stockVal)}" title="Stock Qty">
+
+            <div class="pkg-actions">
+              <span class="status-area"></span>
+              <button class="btn" onclick="savePackage('${pkg.id}')">Save</button>
+              <button class="btn ghost" onclick="deletePackage('${pkg.id}')">Del</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      attachPackageWatchers();
+    }
+
+    // =========================
+    //  Unsaved Highlight + Stock Warnings
+    // =========================
+    function attachPackageWatchers() {
+      document.querySelectorAll('.package-item').forEach(row => {
+        const statusArea = row.querySelector('.status-area');
+        const inputs = row.querySelectorAll('input');
+
+        function setBulkButtonsFromDirtyState() {
+          const anyDirty = document.querySelectorAll('.package-item.dirty').length > 0;
+          setBulkButtonsState(anyDirty);
+        }
+
+        function evaluateRow() {
+          let original = null;
+          try {
+            original = JSON.parse(row.dataset.original || '{}');
+          } catch {
+            original = {};
+          }
+
+          const label = (row.querySelector('.pkg-label')?.value || '').trim();
+          const price = parseFloat(row.querySelector('.pkg-price')?.value || '0');
+          const disc  = parseFloat(row.querySelector('.pkg-disc')?.value || '0');
+          const stock = parseInt(row.querySelector('.pkg-stock')?.value || '0', 10);
+
+          const origLabel = (original.label || '').trim();
+          const origPrice = Number(original.price || 0);
+          const origDisc  = Number(original.discount_pct || 0);
+          const origStock = Number(original.stock || 0);
+
+          const dirty =
+            label !== origLabel ||
+            Number(price) !== Number(origPrice) ||
+            Number(disc)  !== Number(origDisc)  ||
+            Number(stock) !== Number(origStock);
+
+          row.classList.toggle('dirty', dirty);
+
+          // Stock badge + row coloring for stock levels
+          row.classList.remove('low-stock', 'out-stock');
+
+          let stockBadge = '';
+
+          if (stock === 0) {
+            row.classList.add('out-stock');
+            stockBadge = `<span class="stock-badge stock-out">OUT</span>`;
+          } else if (stock < 20) {
+            row.classList.add('low-stock');
+            stockBadge = `<span class="stock-badge stock-low">LOW</span>`;
+          } else {
+            stockBadge = `<span class="stock-badge stock-ok">OK</span>`;
+          }
+
+          statusArea.innerHTML = `
+            ${dirty ? '<span class="unsaved-badge">Unsaved</span>' : ''}
+            ${stockBadge}
+          `;
+
+          setBulkButtonsFromDirtyState();
+        }
+
+        inputs.forEach(i => i.addEventListener('input', evaluateRow));
+        evaluateRow();
+      });
+    }
+
+    function setBulkButtonsState(enabled) {
+      saveAllPackagesBtn.disabled = !enabled;
+      discardAllPackagesBtn.disabled = !enabled;
+    }
+
+    // =========================
+    //  Keep helpers to reload the same region after actions
+    // =========================
+    function getCurrentGameAndRegion() {
+      const gameId = gameSelectEl.value;
+      const game = ALL_GAMES.find(g => g.id === gameId);
+
+      // IMPORTANT: no-region game uses '' (empty string)
+      const regionKey = (game && (Number(game.regionable) === 1 || game.regionable === true))
+        ? (regionSelectEl ? (regionSelectEl.value || '') : '')
+        : '';
+
+      return { gameId, regionKey, game };
+    }
+
+    // =========================
+    //  Load Packages
+    // =========================
+    async function loadPackagesForGame(gameId, regionKey) {
+      packageListEl.innerHTML = '<p class="muted">Loading packages...</p>';
+
+      try {
+        // IMPORTANT: always send regionKey param ('' allowed)
+        const url =
+          `${API_BASE_URL}/packages?gameId=${encodeURIComponent(gameId)}&regionKey=${encodeURIComponent(regionKey || '')}`;
+
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('Failed to load packages');
+
+        const packages = await res.json();
+        renderPackages(packages);
+
+        // after load, no dirty
+        setBulkButtonsState(false);
+
+      } catch (err) {
+        console.error(err);
+        packageListEl.innerHTML = '<p class="danger">Failed to load packages.</p>';
+        CURRENT_PACKAGES = [];
+        setBulkButtonsState(false);
+      }
+    }
+
+    // =========================
+    //  Save Single Package
+    // =========================
+    window.savePackage = async (id) => {
+      const row = document.querySelector(`.package-item[data-id="${id}"]`);
+      if (!row) return;
+
+      const label = (row.querySelector('.pkg-label')?.value || '').trim();
+      const price = parseFloat(row.querySelector('.pkg-price')?.value || '0');
+      const discount_pct = parseFloat(row.querySelector('.pkg-disc')?.value || '0');
+      const stock = parseInt(row.querySelector('.pkg-stock')?.value || '0', 10);
+
+      if (!label) return alert('Package name is required.');
+      if (isNaN(price) || price < 0) return alert('Invalid price.');
+      if (isNaN(discount_pct) || discount_pct < 0 || discount_pct > 100) return alert('Discount must be 0–100.');
+      if (isNaN(stock) || stock < 0) return alert('Invalid stock.');
+
+      try {
+        const res = await fetch(`${API_BASE_URL}/admin/package`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id, label, price, discount_pct, stock })
+        });
+
+        if (!res.ok) {
+          const msg = await res.text().catch(() => '');
+          throw new Error(msg || 'Update failed');
+        }
+
+        // Update UI original snapshot (so dirty clears)
+        row.classList.remove('dirty');
+
+        row.dataset.original = JSON.stringify({
+          id,
+          label,
+          price,
+          discount_pct,
+          stock
+        });
+
+        // Re-evaluate watchers (badges/stock)
+        attachPackageWatchers();
+
+        alert('Package updated!');
+
+      } catch (e) {
+        console.error(e);
+        alert('Could not update package.');
+      }
+    };
+
+    // =========================
+    //  Delete Package
+    // =========================
+    window.deletePackage = async (id) => {
+      if (!confirm('Delete this package?')) return;
+
+      const { gameId, regionKey } = getCurrentGameAndRegion();
+
+      try {
+        const res = await fetch(`${API_BASE_URL}/admin/package?id=${encodeURIComponent(id)}`, {
+          method: 'DELETE'
+        });
+
+        if (!res.ok) {
+          alert('Failed to delete package.');
+          return;
+        }
+
+        await loadPackagesForGame(gameId, regionKey);
+        alert('Package deleted.');
+
+      } catch (e) {
+        console.error(e);
+        alert('Failed to delete package.');
+      }
+    };
+
+    // =========================
+    //  Add New Package
+    // =========================
+    document.getElementById('addPackageBtn').addEventListener('click', async () => {
+      const { gameId, regionKey, game } = getCurrentGameAndRegion();
+      if (!game) return alert('Select a game first.');
+
+      const label = document.getElementById('packageName').value.trim();
+      const price = parseFloat(document.getElementById('packagePrice').value || '0');
+      const discount_pct = parseFloat(document.getElementById('packageDiscount').value || '0');
+      const stock = parseInt(document.getElementById('packageStock').value || '0', 10);
+
+      if (!label) return alert('Package name is required.');
+      if (isNaN(price) || price < 0) return alert('Invalid price.');
+      if (isNaN(discount_pct) || discount_pct < 0 || discount_pct > 100) return alert('Discount must be 0–100.');
+      if (isNaN(stock) || stock < 0) return alert('Invalid stock.');
+
+      // IMPORTANT: for non-region games, force region_key = ''
+      const sendRegion = (Number(game.regionable) === 1 || game.regionable === true) ? (regionKey || '') : '';
+
+      try {
+        const res = await fetch(`${API_BASE_URL}/admin/package`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            game_id: gameId,
+            region_key: sendRegion,
+            label,
+            price,
+            discount_pct,
+            stock
+          })
+        });
+
+        if (!res.ok) {
+          const t = await res.text().catch(() => '');
+          alert('Failed to add package.' + (t ? `\n${t}` : ''));
+          return;
+        }
+
+        // reset inputs
+        document.getElementById('packageName').value = '';
+        document.getElementById('packagePrice').value = '';
+        document.getElementById('packageDiscount').value = '0';
+        document.getElementById('packageStock').value = '999';
+
+        alert('Package added!');
+        await loadPackagesForGame(gameId, sendRegion);
+
+      } catch (e) {
+        console.error(e);
+        alert('Failed to add package.');
+      }
+    });
+
+    // =========================
+    //  NEW: Save All Packages (only dirty rows)
+    // =========================
+    saveAllPackagesBtn.addEventListener('click', async () => {
+      const dirtyRows = Array.from(document.querySelectorAll('.package-item.dirty'));
+      if (!dirtyRows.length) {
+        alert('No unsaved changes.');
+        setBulkButtonsState(false);
+        return;
+      }
+
+      const confirmMsg =
+        `Save ${dirtyRows.length} changed package(s)?\n\n` +
+        `Tip: Rows highlighted yellow are unsaved.`;
+
+      if (!confirm(confirmMsg)) return;
+
+      saveAllPackagesBtn.disabled = true;
+      discardAllPackagesBtn.disabled = true;
+
+      // Save sequentially (safer + easier to debug)
+      let okCount = 0;
+      let failCount = 0;
+
+      for (const row of dirtyRows) {
+        const id = row.dataset.id;
+
+        const label = (row.querySelector('.pkg-label')?.value || '').trim();
+        const price = parseFloat(row.querySelector('.pkg-price')?.value || '0');
+        const discount_pct = parseFloat(row.querySelector('.pkg-disc')?.value || '0');
+        const stock = parseInt(row.querySelector('.pkg-stock')?.value || '0', 10);
+
+        // Validate quickly
+        if (!label || isNaN(price) || price < 0 || isNaN(discount_pct) || discount_pct < 0 || discount_pct > 100 || isNaN(stock) || stock < 0) {
+          failCount++;
+          continue;
+        }
+
+        try {
+          const res = await fetch(`${API_BASE_URL}/admin/package`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id, label, price, discount_pct, stock })
+          });
+
+          if (!res.ok) throw new Error('Save failed');
+
+          // update original snapshot so it becomes clean
+          row.classList.remove('dirty');
+          row.dataset.original = JSON.stringify({ id, label, price, discount_pct, stock });
+
+          okCount++;
+
+        } catch (e) {
+          console.error('SaveAll row failed:', id, e);
+          failCount++;
+        }
+      }
+
+      attachPackageWatchers();
+
+      if (failCount === 0) {
+        alert(`Saved all changes! (${okCount} updated)`);
+      } else {
+        alert(`Saved: ${okCount}\nFailed: ${failCount}\n\nPlease check invalid fields or retry.`);
+      }
+
+      // Buttons state after save
+      const anyDirtyLeft = document.querySelectorAll('.package-item.dirty').length > 0;
+      setBulkButtonsState(anyDirtyLeft);
+    });
+
+    // =========================
+    //  NEW: Discard All Changes
+    // =========================
+    discardAllPackagesBtn.addEventListener('click', async () => {
+      const dirtyRows = Array.from(document.querySelectorAll('.package-item.dirty'));
+      if (!dirtyRows.length) {
+        alert('No unsaved changes.');
+        setBulkButtonsState(false);
+        return;
+      }
+
+      if (!confirm(`Discard changes for ${dirtyRows.length} row(s)?`)) return;
+
+      for (const row of dirtyRows) {
+        let original = {};
+        try { original = JSON.parse(row.dataset.original || '{}'); } catch { original = {}; }
+
+        row.querySelector('.pkg-label').value = original.label ?? '';
+        row.querySelector('.pkg-price').value = Number(original.price ?? 0).toFixed(2);
+        row.querySelector('.pkg-disc').value  = Number(original.discount_pct ?? 0);
+        row.querySelector('.pkg-stock').value = Number(original.stock ?? 0);
+
+        row.classList.remove('dirty');
+      }
+
+      attachPackageWatchers();
+      setBulkButtonsState(false);
+    });
+
+    // =========================
+    //  Order Management
+    // =========================
+    async function loadOrders() {
+      const el = document.getElementById('orderList');
+      el.innerHTML = '<p class="muted">Loading recent orders...</p>';
+
+      try {
+        const res = await fetch(`${API_BASE_URL}/admin/orders`);
+        if (!res.ok) throw new Error('Failed to load orders.');
+
+        const orders = await res.json();
+        if (!orders.length) {
+          el.innerHTML = '<p>No orders yet.</p>';
+          return;
+        }
+
+        let html = `
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Order ID</th>
+                <th>User</th>
+                <th>Total (MYR)</th>
+                <th>Method</th>
+                <th>Status</th>
+                <th>Created</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+        `;
+
+        for (const o of orders) {
+          const isProcessing = o.status === 'Processing';
+          const isCancelled  = o.status === 'Cancelled';
+
+          html += `
+            <tr id="row-${o.id}">
+              <td><strong>${o.id}</strong></td>
+              <td>${o.user_email}</td>
+              <td>${(+o.total).toFixed(2)}</td>
+              <td>${o.payment_method}</td>
+              <td><span class="pill-s status-${o.status}">${o.status}</span></td>
+              <td>${o.created_at}</td>
+              <td>
+                <button class="btn ghost" onclick="toggleOrder('${o.id}')">View</button>
+                <button class="btn" onclick="completeOrder('${o.id}')" ${(!isProcessing) ? 'disabled' : ''}>Complete</button>
+                <button class="btn ghost" onclick="cancelOrder('${o.id}')" ${(!isProcessing) ? 'disabled' : ''}>Cancel</button>
+                <button class="btn danger" onclick="refundOrder('${o.id}')" ${(!isCancelled) ? 'disabled' : ''}>Refund</button>
+              </td>
+            </tr>
+            <tr id="items-${o.id}" class="hidden">
+              <td colspan="7">
+                <div class="order-items" id="itemsBox-${o.id}">Loading items…</div>
+              </td>
+            </tr>
+          `;
+        }
+
+        html += `
+            </tbody>
+          </table>
+        `;
+
+        el.innerHTML = html;
+
+      } catch (err) {
+        console.error(err);
+        el.innerHTML = '<p class="danger">Could not load orders.</p>';
+      }
+    }
+
+    window.toggleOrder = async (orderId) => {
+      const row = document.getElementById(`items-${orderId}`);
+      row.classList.toggle('hidden');
+
+      if (!row.classList.contains('hidden')) {
+        const box = document.getElementById(`itemsBox-${orderId}`);
+        box.innerHTML = 'Loading items…';
+
+        try {
+          const res = await fetch(`${API_BASE_URL}/admin/order-items?orderId=${encodeURIComponent(orderId)}`);
+          if (!res.ok) throw new Error('Failed to load items');
+
+          const items = await res.json();
+          if (!items.length) {
+            box.innerHTML = '<div class="muted">No items.</div>';
+            return;
+          }
+
+          box.innerHTML = `
+            <h4>Items</h4>
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Game</th>
+                  <th>Package</th>
+                  <th>Qty</th>
+                  <th>Price</th>
+                  <th>UID</th>
+                  <th>PIN (for card)</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${items.map(it => `
+                  <tr>
+                    <td>${it.id}</td>
+                    <td>${it.game_name}</td>
+                    <td>${it.package_label}</td>
+                    <td>${it.quantity}</td>
+                    <td>${(+it.price_at_purchase).toFixed(2)}</td>
+                    <td>${it.uid || '-'}</td>
+                    <td>
+                      <div class="pin-row">
+                        <input type="text" id="pin-${orderId}-${it.id}" placeholder="Enter PIN…" value="${it.pin || ''}">
+                        <button class="btn ghost" onclick="savePin('${orderId}', ${it.id})">Save</button>
+                      </div>
+                    </td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          `;
+        } catch (e) {
+          console.error(e);
+          box.innerHTML = '<div class="danger">Failed to load items.</div>';
+        }
+      }
+    };
+
+    window.savePin = async (orderId, itemId) => {
+      const input = document.getElementById(`pin-${orderId}-${itemId}`);
+
+      try {
+        const res = await fetch(`${API_BASE_URL}/admin/order/pin`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            order_id: orderId,
+            item_id: itemId,
+            pin: (input.value || '').trim()
+          })
+        });
+
+        if (!res.ok) throw new Error('Failed to save PIN.');
+        alert('PIN saved.');
+      } catch (e) {
+        console.error(e);
+        alert('Could not save PIN.');
+      }
+    };
+
+    async function changeStatus(orderId, endpoint, successMsg) {
+      const btnCell = document.querySelector(`#row-${orderId} td:last-child`);
+      const old = btnCell.innerHTML;
+
+      btnCell.innerHTML = '<span class="muted">Processing…</span>';
+
+      try {
+        const res = await fetch(`${API_BASE_URL}${endpoint}`, {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ order_id: orderId })
+        });
+
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.message || 'Failed.');
+
+        alert(successMsg);
+        loadOrders();
+
+      } catch (e) {
+        alert(e.message || 'Action failed.');
+        btnCell.innerHTML = old;
+      }
+    }
+
+    window.completeOrder = (orderId) => changeStatus(orderId, '/admin/order/complete', 'Order marked as Completed.');
+    window.cancelOrder   = (orderId) => changeStatus(orderId, '/admin/order/cancel',   'Order marked as Cancelled.');
+    window.refundOrder   = (orderId) => changeStatus(orderId, '/admin/order/refund',   'Order refunded.');
+
+    // =========================
+    //  Boot
+    // =========================
+    if (sessionStorage.getItem('isAdmin') === 'true') showAdminPanel();
+  </script>
 </body>
 </html>
